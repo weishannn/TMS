@@ -32,7 +32,7 @@
 			currentemail = response.data.email;
 		} catch (error) {
 			console.error('Error fetching current user:', error);
-			toast.error('Failed to load user data. Please try again.');
+			toast.error('Server issue. Please try again.');
 			redirectToLogin();
 		}
 	};
@@ -53,7 +53,7 @@
 			} else {
 				// Log other errors (e.g., server issues or unexpected responses)
 				console.error('Error checking if user is an admin:', error);
-				toast.error('Failed to check if user is an admin. Please try again.');
+				toast.error('Server issue. Please try again.');
 			}
 		}
 	};

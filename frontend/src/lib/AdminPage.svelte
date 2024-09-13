@@ -37,7 +37,7 @@
 			console.log('users:', users);
 		} catch (error) {
 			console.error('Error fetching users:', error);
-			toast.error('Failed to fetch users. Please try again.');
+			toast.error('Server issue. Please try again.');
 		}
 	};
 
@@ -51,7 +51,7 @@
 			console.log('availableGroups:', availableGroups);
 		} catch (error) {
 			console.error('Error fetching groups:', error);
-			toast.error('Failed to fetch groups. Please try again.');
+			toast.error('Server issue. Please try again.');
 		}
 	};
 

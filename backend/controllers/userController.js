@@ -8,6 +8,7 @@ const cookieOptions = {
   secure: process.env.NODE_ENV === "production", // Use secure cookies in production
   maxAge: 3600000, // 1 hour
 };
+const { activeSessions } = require("../utils/config/sessionStore");
 
 // CHECKGROUP FUNCTION >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 exports.checkAdmin = catchAsyncErrors(async (req, res) => {
@@ -441,60 +442,70 @@ exports.createGroup = catchAsyncErrors(async (req, res) => {
 });
 
 /// Login function with JWT generation
-exports.login = catchAsyncErrors(async (req, res) => {
+exports.login = async (req, res) => {
   const { username, password } = req.body;
   const ipAddress =
     req.headers["x-forwarded-for"] || req.connection.remoteAddress;
 
-  db.query(
-    "SELECT * FROM accounts WHERE username = ?",
-    [username],
-    (err, rows) => {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
+  try {
+    // Query database for user
+    db.query(
+      "SELECT * FROM accounts WHERE username = ?",
+      [username],
+      (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
 
-      if (rows.length > 0) {
-        const user = rows[0];
+        if (rows.length > 0) {
+          const user = rows[0];
 
-        if (user.accountStatus === "inactive") {
+          if (user.accountStatus === "inactive") {
+            return res.status(403).json({ error: "Account is inactive" });
+          }
+
+          bcrypt.compare(password, user.password, (err, result) => {
+            if (err) return res.status(500).json({ error: err.message });
+
+            if (result) {
+              // If user is already logged in, invalidate the old session
+              for (const token in activeSessions) {
+                const sessionData = activeSessions[token];
+                if (sessionData.username === username) {
+                  delete activeSessions[token]; // Invalidate previous session
+                }
+              }
+
+              // Generate new token
+              const token = jwt.sign(
+                { username: user.username, ipAddress }, // Include IP address
+                process.env.ACCESS_TOKEN_SECRET,
+                { expiresIn: "1h" } // Set token expiration
+              );
+
+              // Store new token in session store
+              activeSessions[token] = { username: user.username, ipAddress };
+
+              // Set the token in cookie
+              res.cookie("token", token, cookieOptions);
+              return res
+                .status(200)
+                .json({ message: "Login successful", user });
+            } else {
+              return res
+                .status(401)
+                .json({ error: "Invalid username or password" });
+            }
+          });
+        } else {
           return res
-            .status(403)
-            .json({ error: "Invalid Username or Password" });
+            .status(401)
+            .json({ error: "Invalid username or password" });
         }
-
-        bcrypt.compare(password, user.password, (err, result) => {
-          if (err) {
-            return res.status(500).json({ error: err.message });
-          }
-
-          if (result) {
-            const token = jwt.sign(
-              {
-                username: user.username,
-                ipAddress: ipAddress, // Include IP address in the token
-              },
-              process.env.ACCESS_TOKEN_SECRET,
-              { expiresIn: "1h" } // 1 hour
-            );
-
-            res.cookie("token", token, cookieOptions);
-            return res.status(200).json({
-              message: "Login successful",
-              user: user,
-            });
-          } else {
-            return res
-              .status(401)
-              .json({ error: "Invalid Username or Password" });
-          }
-        });
-      } else {
-        return res.status(401).json({ error: "Invalid Username or Password" });
       }
-    }
-  );
-});
+    );
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
 //logout function
 exports.logout = (req, res) => {
