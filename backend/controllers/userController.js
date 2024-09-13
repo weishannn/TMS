@@ -98,7 +98,7 @@ exports.updateProfile = catchAsyncErrors(async (req, res) => {
     res.json({ message: responseMessage });
   });
 });
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
 // Edit other user profile
 exports.editOtherUserProfile = catchAsyncErrors(async (req, res) => {
   const { username, password, email, accountStatus, userGroups } = req.body;

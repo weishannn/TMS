@@ -25,11 +25,10 @@ router.put(
   userController.updateProfile
 );
 
-//admin functions
-// checkGroup
+// checkGroup - admin
 router.post(
   "/checkAdmin",
-  authenticateToken("active", "admin"),
+  authenticateToken("active"),
   userController.checkAdmin
 );
 
@@ -40,6 +39,7 @@ router.post(
 //   userController.checkisInGroup
 // );
 
+//admin functions
 //createuser
 router.post(
   "/createUser",

@@ -262,7 +262,7 @@
 	}
 
 	function handleCancel() {
-		resetForm();
+		isEditing = false;
 	}
 
 	async function handleDeleteGroup(username, groupName) {

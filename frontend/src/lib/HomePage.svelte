@@ -62,7 +62,6 @@
 		if (isAdmin && window.location.pathname === '/homepage/admin') {
 			return; // Allow admin to visit the admin page
 		}
-		//goto('/homepage/applications'); // Redirect everyone to the applications page
 	};
 
 	onMount(async () => {
@@ -96,17 +95,12 @@
 	async function fetchUserProfile() {
 		try {
 			const token = localStorage.getItem('token');
-			const response = await axios.get(
-				'http://localhost:5000/api/users/currentUser',
-				{
-					headers: {
-						Authorization: `Bearer ${token}`
-					}
+			const response = await axios.get('http://localhost:5000/api/users/currentUser', {
+				headers: {
+					Authorization: `Bearer ${token}` // Include the token in the Authorization header
 				},
-				{
-					withCredentials: true // Ensure cookies are sent with the request
-				}
-			);
+				withCredentials: true // Ensure cookies are sent with the request
+			});
 
 			// Update the UI with the new user data
 			const userData = response.data;
@@ -150,9 +144,7 @@
 				{
 					headers: {
 						Authorization: `Bearer ${token}` // Include the token in the Authorization header
-					}
-				},
-				{
+					},
 					withCredentials: true // Ensure cookies are sent with the request
 				}
 			);

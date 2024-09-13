@@ -11,56 +11,102 @@
 	let showGroupModal = false;
 	let groupName = '';
 	let errorMessage = '';
-
+	let loading = true;
+	let username = '';
+	let isAdmin = false;
 	let unsubscribe;
 
-	onMount(() => {
-		unsubscribe = refreshUserList.subscribe(async (refresh) => {
-			if (refresh) {
-				await fetchUsers();
-				refreshUserList.set(false); // Reset the store
-			}
-		});
-	});
+	// Redirect to login page
+	const redirectToLogin = () => {
+		window.location.href = '/login';
+	};
 
-	onDestroy(() => {
-		if (unsubscribe) unsubscribe();
-	});
-
-	// Function to fetch users
-	const fetchUsers = async () => {
+	// Fetch the current user
+	const fetchCurrentUser = async () => {
 		try {
-			const response = await axios.get('http://localhost:5000/api/users/getUsers', {
+			const response = await axios.get('http://localhost:5000/api/users/currentUser', {
 				withCredentials: true // Ensure cookies are sent with the request
 			});
-			users = response.data.users; // assign users data
-			console.log('users:', users);
+			username = response.data.username;
+		} catch (error) {
+			console.error('Error fetching current user:', error);
+			toast.error('Server issue. Please try again.');
+			redirectToLogin();
+		}
+	};
+
+	// Check if the current user is an admin
+	const checkIfAdmin = async () => {
+		try {
+			const response = await axios.post(
+				'http://localhost:5000/api/users/checkAdmin',
+				{ username },
+				{ withCredentials: true }
+			);
+			isAdmin = response.data.isAdmin;
+		} catch (error) {
+			console.error('Error checking if user is an admin:', error);
+			toast.error('Server issue. Please try again.');
+			redirectToLogin();
+		}
+	};
+
+	// Fetch users from the API
+	const fetchUsers = async () => {
+		if (!isAdmin) return; // Skip fetching users if not an admin
+		try {
+			const response = await axios.get('http://localhost:5000/api/users/getUsers', {
+				withCredentials: true
+			});
+			users = response.data.users;
 		} catch (error) {
 			console.error('Error fetching users:', error);
 			toast.error('Server issue. Please try again.');
 		}
 	};
 
-	// Function to fetch groups
+	// Fetch available groups from the API
 	const fetchGroups = async () => {
+		if (!isAdmin) return; // Skip fetching groups if not an admin
 		try {
 			const response = await axios.get('http://localhost:5000/api/users/getGroups', {
-				withCredentials: true // Ensure cookies are sent with the request
+				withCredentials: true
 			});
 			availableGroups = response.data.groups;
-			console.log('availableGroups:', availableGroups);
 		} catch (error) {
 			console.error('Error fetching groups:', error);
 			toast.error('Server issue. Please try again.');
 		}
 	};
 
-	// Call both fetch functions on mount
+	// Call fetch functions on mount
 	onMount(async () => {
-		await fetchUsers();
-		await fetchGroups();
+		await fetchCurrentUser();
+		await checkIfAdmin();
+
+		console.log('onmount', isAdmin, username);
+
+		if (isAdmin) {
+			await fetchUsers();
+			await fetchGroups();
+
+			// Subscribe to user list updates
+			unsubscribe = refreshUserList.subscribe(async (refresh) => {
+				if (refresh) {
+					await fetchUsers();
+					refreshUserList.set(false); // Reset the store
+				}
+			});
+		}
+
+		loading = false;
 	});
 
+	onDestroy(() => {
+		if (unsubscribe) unsubscribe();
+	});
+
+	// Handle modal visibility
 	function handleCreateGroup() {
 		showGroupModal = true;
 	}
@@ -77,7 +123,7 @@
 			return;
 		}
 
-		// Check if the group already exists (case-insensitive check)
+		// Check if the group already exists
 		if (
 			availableGroups.some(
 				(group) => group.user_group && group.user_group.toLowerCase() === groupName.toLowerCase()
@@ -88,26 +134,19 @@
 		}
 
 		try {
-			// Make POST request to create a new group
 			const response = await axios.post(
 				'http://localhost:5000/api/users/createGroup',
-				{
-					userGroup: groupName
-				},
-				{
-					withCredentials: true // Ensure cookies are sent with the request
-				}
+				{ userGroup: groupName },
+				{ withCredentials: true }
 			);
 
 			// Update the availableGroups state
-			availableGroups = [...availableGroups, groupName];
+			availableGroups = [...availableGroups, { user_group: groupName }];
 			groupName = '';
 			errorMessage = '';
 			showGroupModal = false;
 
-			console.log(response.data.message); // Log the success message
-			toast.success(response.data.message); // Show success message
-
+			toast.success(response.data.message);
 			await fetchGroups();
 		} catch (error) {
 			console.error('Error creating group:', error);
@@ -116,41 +155,48 @@
 	}
 </script>
 
-<div class="container">
-	<Toaster />
-	<!-- Include the Toaster component here -->
-	<div class="admin-content">
-		<h1>User Management</h1>
-		<button on:click={handleCreateGroup}>+ Group</button>
-	</div>
-	<div class="admin-header">
-		<div class="admin-header-content">Name</div>
-		<div class="admin-header-content">Email</div>
-		<div class="admin-header-content">Group</div>
-		<div class="admin-header-content">Password</div>
-		<div class="admin-header-content">Status</div>
-		<div class="admin-header-content">Action</div>
-	</div>
-	{#if users.length > 0}
-		<UserList {users} {availableGroups} {fetchUsers} />
-	{/if}
+{#if loading}
+	<p></p>
+{:else if isAdmin}
+	<div class="container">
+		<Toaster />
+		<div class="admin-content">
+			<h1>User Management</h1>
+			<button on:click={handleCreateGroup}>+ Group</button>
+		</div>
+		<div class="admin-header">
+			<div class="admin-header-content">Name</div>
+			<div class="admin-header-content">Email</div>
+			<div class="admin-header-content">Group</div>
+			<div class="admin-header-content">Password</div>
+			<div class="admin-header-content">Status</div>
+			<div class="admin-header-content">Action</div>
+		</div>
+		{#if users.length > 0}
+			<UserList {users} {availableGroups} {fetchUsers} />
+		{/if}
 
-	{#if showGroupModal}
-		<div class="modal">
-			<div class="modal-content">
-				<h2>Add Group</h2>
-				<div class="form-group">
-					<label for="groupName">Group Name:</label>
-					<input id="groupName" type="text" bind:value={groupName} placeholder="Name" />
-				</div>
-				<div class="modal-actions">
-					<button on:click={handleSaveGroup}>Add</button>
-					<button on:click={handleCancel}>Cancel</button>
+		{#if showGroupModal}
+			<div class="modal">
+				<div class="modal-content">
+					<h2>Add Group</h2>
+					<div class="form-group">
+						<label for="groupName">Group Name:</label>
+						<input id="groupName" type="text" bind:value={groupName} placeholder="Name" />
+					</div>
+					<div class="modal-actions">
+						<button on:click={handleSaveGroup}>Add</button>
+						<button on:click={handleCancel}>Cancel</button>
+					</div>
 				</div>
 			</div>
-		</div>
-	{/if}
-</div>
+		{/if}
+	</div>
+{:else}
+	<p style="color: red; text-align: center; font-size: 50px; font-weight: bold;">
+		404 Error - No Access Rights
+	</p>
+{/if}
 
 <style>
 	.container {

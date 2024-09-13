@@ -12,7 +12,7 @@
 	<!-- Include the Toaster component here -->
 	<div class="content">
 		<h1>Applications</h1>
-		<button on:click>+ CREATE APP</button>
+		<!-- <button on:click>+ CREATE APP</button> -->
 	</div>
 </div>
 
@@ -23,7 +23,7 @@
 		height: 100vh;
 	}
 
-	button {
+	/* button {
 		padding: 0.5em;
 		border: none;
 		border-radius: 4px;
@@ -36,7 +36,7 @@
 
 	button:hover {
 		background-color: #333;
-	}
+	} */
 
 	.content {
 		padding: 0.5em 1em;

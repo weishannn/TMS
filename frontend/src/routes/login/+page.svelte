@@ -62,7 +62,7 @@
 			toast.success('Login successful! Redirecting to homepage...');
 
 			// Redirect to homepage
-			goto('/homepage');
+			goto('/homepage/applications');
 		} catch (error) {
 			if (error.response) {
 				if (error.response.status === 401 || error.response.status === 403) {
