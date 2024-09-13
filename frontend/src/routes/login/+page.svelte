@@ -3,9 +3,37 @@
 	import axios from 'axios';
 	import { goto } from '$app/navigation';
 	import { Toaster, toast } from 'svelte-sonner';
+	import { onMount } from 'svelte';
 
 	let username = '';
 	let password = '';
+
+	async function handleLogout() {
+		try {
+			// Ensure cookies are sent with the request
+			await axios.post('http://localhost:5000/api/users/logout', {}, { withCredentials: true });
+			toast.success('Logged out successfully.');
+
+			// Redirect to login page
+			goto('/login');
+		} catch (error) {
+			if (error.response && error.response.status === 401) {
+				// Handle the case where the user is already logged out (no token)
+				console.log('User already logged out.');
+				// Optionally, display a toast message or redirect to the login page
+				toast.info('User already logged out.');
+				goto('/login');
+			} else {
+				// For other errors, display the error and notify the user
+				console.error('Error logging out:', error);
+				toast.error('Error logging out. Please try again.');
+			}
+		}
+	}
+
+	onMount(() => {
+		handleLogout();
+	});
 
 	async function handleSubmit() {
 		if (!username || !password) {

@@ -4,54 +4,92 @@ const userController = require("../controllers/userController");
 const authenticateToken = require("../middleware/auth");
 
 // Define routes
+//all users function
 //login
 router.post("/login", userController.login);
 
-// Routes that require authentication
-router.get("/currentUser", authenticateToken, userController.getCurrentUser);
+//logout
+router.post("/logout", authenticateToken("active"), userController.logout);
 
-// checkGroup
-router.post("/checkAdmin", authenticateToken, userController.checkAdmin);
-router.post(
-  "/checkisInGroup",
-  authenticateToken,
-  userController.checkisInGroup
+// Routes that require authentication
+router.get(
+  "/currentUser",
+  authenticateToken("active"),
+  userController.getCurrentUser
 );
 
+//updatedata
+router.put(
+  "/updateProfile",
+  authenticateToken("active"),
+  userController.updateProfile
+);
+
+//admin functions
+// checkGroup
+router.post(
+  "/checkAdmin",
+  authenticateToken("active", "admin"),
+  userController.checkAdmin
+);
+
+//not use yet,,, for A2
+// router.post(
+//   "/checkisInGroup",
+//   authenticateToken,
+//   userController.checkisInGroup
+// );
+
 //createuser
-router.post("/createUser", authenticateToken, userController.createUser);
+router.post(
+  "/createUser",
+  authenticateToken("active", "admin"),
+  userController.createUser
+);
+
 //putuserintogroup
 router.post(
   "/putUserIntoGroup",
-  authenticateToken,
+  authenticateToken("active", "admin"),
   userController.putUserIntoGroup
 );
+
 //creategroup
-router.post("/createGroup", authenticateToken, userController.createGroup);
+router.post(
+  "/createGroup",
+  authenticateToken("active", "admin"),
+  userController.createGroup
+);
 
 //getdata
 router.get(
   "/getUsersAndGroups",
-  authenticateToken,
+  authenticateToken("active", "admin"),
   userController.getUsersAndGroups
 );
-router.get("/getUsers", authenticateToken, userController.getUsers);
-router.get("/getGroups", authenticateToken, userController.getGroups);
 
-//updatedata
-router.put("/updateProfile", authenticateToken, userController.updateProfile);
+router.get(
+  "/getUsers",
+  authenticateToken("active", "admin"),
+  userController.getUsers
+);
+router.get(
+  "/getGroups",
+  authenticateToken("active", "admin"),
+  userController.getGroups
+);
 
 //editOtherUserProfile
 router.put(
   "/editOtherUserProfile",
-  authenticateToken,
+  authenticateToken("active", "admin"),
   userController.editOtherUserProfile
 );
 
 //deleteUserGroup
 router.delete(
   "/deleteUserGroup",
-  authenticateToken,
+  authenticateToken("active", "admin"),
   userController.deleteUserGroup
 );
 

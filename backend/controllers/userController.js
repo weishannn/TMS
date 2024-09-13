@@ -119,10 +119,13 @@ exports.editOtherUserProfile = catchAsyncErrors(async (req, res) => {
     accountValues.push(email);
     updateMessages.push("Profile Email updated successfully");
   }
-  if (accountStatus) {
+  // Skip accountStatus update if the username is "Root"
+  if (accountStatus && username !== "Root") {
     accountQuery += "accountStatus = ?, ";
     accountValues.push(accountStatus);
     updateMessages.push("Profile Status updated successfully");
+  } else if (username === "Root" && accountStatus) {
+    updateMessages.push("Root account status cannot be updated.");
   }
 
   // Ensure the account query has fields to update
@@ -440,6 +443,8 @@ exports.createGroup = catchAsyncErrors(async (req, res) => {
 /// Login function with JWT generation
 exports.login = catchAsyncErrors(async (req, res) => {
   const { username, password } = req.body;
+  const ipAddress =
+    req.headers["x-forwarded-for"] || req.connection.remoteAddress;
 
   db.query(
     "SELECT * FROM accounts WHERE username = ?",
@@ -465,7 +470,10 @@ exports.login = catchAsyncErrors(async (req, res) => {
 
           if (result) {
             const token = jwt.sign(
-              { username: user.username },
+              {
+                username: user.username,
+                ipAddress: ipAddress, // Include IP address in the token
+              },
               process.env.ACCESS_TOKEN_SECRET,
               { expiresIn: "1h" } // 1 hour
             );
@@ -487,3 +495,20 @@ exports.login = catchAsyncErrors(async (req, res) => {
     }
   );
 });
+
+//logout function
+exports.logout = (req, res) => {
+  // Check if the 'token' cookie exists
+  if (!req.cookies.token) {
+    return res.status(401).json({ message: "User already logged out." });
+  }
+
+  // If the 'token' exists, clear it
+  res.clearCookie("token", {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: true, // Ensure 'secure' is set to true in production
+  });
+
+  return res.status(200).json({ message: "Logged out successfully." });
+};

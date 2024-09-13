@@ -343,7 +343,7 @@
 	<ul class="user-list-table">
 		{#each users as user (user.username)}
 			<li class="user-row">
-				{#if isEditing && selectedUser && selectedUser.username === user.username}
+				{#if isEditing && selectedUser && selectedUser.username === user.username && user.username !== 'Root'}
 					<!-- Edit mode -->
 					<div class="form-group">
 						<input type="text" value={editInputUsername} readonly class="readonly-username" />
@@ -406,11 +406,13 @@
 					<div class="user-account_status">{user.accountStatus}</div>
 
 					<div class="actions">
-						<button class="edit-button" on:click={() => handleEdit(user)}>
-							<div style="width: 20px;">
-								<FaEdit />
-							</div>
-						</button>
+						{#if user.username !== 'Root'}
+							<button class="edit-button" on:click={() => handleEdit(user)}>
+								<div style="width: 20px;">
+									<FaEdit />
+								</div>
+							</button>
+						{/if}
 					</div>
 				{/if}
 			</li>
