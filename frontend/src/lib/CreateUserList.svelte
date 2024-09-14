@@ -312,13 +312,13 @@
 				{#if selectedGroups.length > 0}
 					<div class="scrollable-container">
 						{#each selectedGroups as group}
-							<button
-								class="group-bubble2"
-								on:click={() => handleRemoveGroup(group)}
-								aria-label={`Remove group ${group}`}
-							>
-								{group}
+						<div class="group-bubble2">
+							<span class="group-name">{group}</span>
+							<button class="remove-icon" on:click={() => handleRemoveGroup(group)}
+								aria-label={`Remove group ${group}`}>
+							<span>✖</span>
 							</button>
+							</div>
 						{/each}
 					</div>
 				{/if}
@@ -362,13 +362,13 @@
 						{#if localSelectedGroups.length > 0}
 							<div class="scrollable-container">
 								{#each localSelectedGroups as group}
-									<button
-										class="group-bubble2"
-										on:click={() => removeGroupFromLocalList(group)}
-										aria-label={`Remove group ${group}`}
-									>
-										{group}
+									<div class="group-bubble2">
+									<span class="group-name">{group}</span>
+									<button class="remove-icon" on:click={() => removeGroupFromLocalList(group)}
+										aria-label={`Remove group ${group}`}>
+									<span>✖</span>
 									</button>
+									</div>
 								{/each}
 							</div>
 						{/if}
@@ -524,14 +524,19 @@
 		margin-top: 0.3rem;
 		margin-right: 0.2rem;
 		color: #000; /* Text color */
+		border: #e1e9f6;
+	}
+
+	.remove-icon{
+		background-color: #e1e9f6;
+		color: #000; /* Text color */
 		cursor: pointer;
 		border: #e1e9f6;
 	}
 
-	.group-bubble2:hover {
-		background-color: red; /* Light gray background */
+	.remove-icon:hover {
 		border: red;
-		color: #fff; /* Text color */
+		color: red; /* Text color */
 		cursor: pointer;
 	}
 

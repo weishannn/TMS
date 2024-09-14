@@ -11,11 +11,6 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 app.use(cookieParser());
-// Route to clear the cookie
-app.get("/login", (req, res) => {
-  res.clearCookie("token", cookieOptions); // Clear the cookie
-  res.redirect("/login"); // Redirect to login page or handle as needed
-});
 
 // Enable CORS
 app.use(

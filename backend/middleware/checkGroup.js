@@ -30,7 +30,12 @@ const checkGroup = (username, user_group) =>
       );
 
       if (results.length > 0) {
-        next(); // User is in the group
+        // User is in the group, proceed with the next middleware
+        return next();
+      } else {
+        // User is not in the group, redirect to /login
+        console.log("User is not in the group");
+        res.redirect("/login"); // kick user to login
       }
     } catch (err) {
       console.error("Error checking user group:", err);

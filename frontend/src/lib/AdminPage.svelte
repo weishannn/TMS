@@ -37,19 +37,19 @@
 
 	// Check if the current user is an admin
 	const checkIfAdmin = async () => {
-		try {
-			const response = await axios.post(
-				'http://localhost:5000/api/users/checkAdmin',
-				{ username },
-				{ withCredentials: true }
-			);
-			isAdmin = response.data.isAdmin;
-		} catch (error) {
-			console.error('Error checking if user is an admin:', error);
-			toast.error('Server issue. Please try again.');
-			redirectToLogin();
-		}
-	};
+    try {
+        const response = await axios.post(
+            'http://localhost:5000/api/users/checkAdmin',
+            { username },
+            { withCredentials: true }
+        );
+        isAdmin = response.data.isAdmin;
+    } catch (error) {
+        console.error('Error checking if user is an admin:', error);
+        toast.error('Server issue. Please try again.');
+        redirectToLogin();
+    }
+};
 
 	// Fetch users from the API
 	const fetchUsers = async () => {
@@ -192,10 +192,6 @@
 			</div>
 		{/if}
 	</div>
-{:else}
-	<p style="color: red; text-align: center; font-size: 50px; font-weight: bold;">
-		404 Error - No Access Rights
-	</p>
 {/if}
 
 <style>

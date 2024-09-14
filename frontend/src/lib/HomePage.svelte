@@ -48,7 +48,7 @@
 			);
 			isAdmin = response.data.isAdmin; // Set based on the backend response
 		} catch (error) {
-			if (error.response.status === 403) {
+			if (error.response.status === 404) {
 				isAdmin = false;
 			} else {
 				// Log other errors (e.g., server issues or unexpected responses)
