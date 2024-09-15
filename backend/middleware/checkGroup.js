@@ -36,6 +36,7 @@ const checkGroup = (username, user_group) =>
         // User is not in the group, redirect to /login
         console.log("User is not in the group");
         res.redirect("/login"); // kick user to login
+        return;
       }
     } catch (err) {
       console.error("Error checking user group:", err);

@@ -5,6 +5,7 @@
 	import UserList from './CreateUserList.svelte';
 	import { Toaster, toast } from 'svelte-sonner';
 	import { refreshUserList } from '../stores/updateStore';
+	import { goto } from '$app/navigation';
 
 	let users = [];
 	let availableGroups = [];
@@ -18,7 +19,7 @@
 
 	// Redirect to login page
 	const redirectToLogin = () => {
-		window.location.href = '/login';
+		goto('/login');
 	};
 
 	// Fetch the current user
@@ -37,19 +38,19 @@
 
 	// Check if the current user is an admin
 	const checkIfAdmin = async () => {
-    try {
-        const response = await axios.post(
-            'http://localhost:5000/api/users/checkAdmin',
-            { username },
-            { withCredentials: true }
-        );
-        isAdmin = response.data.isAdmin;
-    } catch (error) {
-        console.error('Error checking if user is an admin:', error);
-        toast.error('Server issue. Please try again.');
-        redirectToLogin();
-    }
-};
+		try {
+			const response = await axios.post(
+				'http://localhost:5000/api/users/checkAdmin',
+				{ username },
+				{ withCredentials: true }
+			);
+			isAdmin = response.data.isAdmin;
+		} catch (error) {
+			console.error('Error checking if user is an admin:', error);
+			toast.error('Server issue. Please try again.');
+			redirectToLogin();
+		}
+	};
 
 	// Fetch users from the API
 	const fetchUsers = async () => {
@@ -151,6 +152,7 @@
 		} catch (error) {
 			console.error('Error creating group:', error);
 			toast.error('Failed to create group. Please try again.');
+			redirectToLogin();
 		}
 	}
 </script>

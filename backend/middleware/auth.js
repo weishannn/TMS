@@ -30,8 +30,12 @@ const authenticateToken = (expectedStatus, userGroup) => (req, res, next) => {
     const currentIpAddress =
       req.headers["x-forwarded-for"] || req.connection.remoteAddress;
 
+    // Normalize IP addresses if necessary
+    const normalizedTokenIp = tokenIpAddress.trim().toLowerCase();
+    const normalizedCurrentIp = currentIpAddress.trim().toLowerCase();
+
     // Check if IP addresses match
-    if (tokenIpAddress !== currentIpAddress) {
+    if (normalizedTokenIp !== normalizedCurrentIp) {
       // Invalidate the session if IPs mismatch
       if (activeSessions[token]) {
         delete activeSessions[token]; // Remove from session store

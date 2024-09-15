@@ -4,6 +4,7 @@
 	import { Toaster, toast } from 'svelte-sonner';
 	import axios from 'axios';
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 
 	let inputUsername = '';
 	let inputEmail = '';
@@ -90,6 +91,11 @@
 		return emailPattern.test(email);
 	}
 
+	// Redirect to login page
+	const redirectToLogin = () => {
+		goto('/login');
+	};
+
 	async function handleCreateUser() {
 		if (!inputUsername || !inputPassword || !inputAccount_status) {
 			toast.error('Please provide valid inputs.');
@@ -144,6 +150,7 @@
 			} else {
 				console.error('Error saving user:', error);
 				toast.error('Error saving user. Please try again.');
+				redirectToLogin();
 			}
 		}
 	}
@@ -206,6 +213,7 @@
 			} else {
 				console.error('Error updating user:', error);
 				toast.error('Error updating user. Please try again.');
+				redirectToLogin();
 			}
 		}
 	}
@@ -285,6 +293,7 @@
 		} catch (error) {
 			console.error('Error deleting group:', error.response ? error.response.data : error.message);
 			toast.error('Error deleting group.');
+			redirectToLogin();
 		}
 	}
 </script>
@@ -312,12 +321,15 @@
 				{#if selectedGroups.length > 0}
 					<div class="scrollable-container">
 						{#each selectedGroups as group}
-						<div class="group-bubble2">
-							<span class="group-name">{group}</span>
-							<button class="remove-icon" on:click={() => handleRemoveGroup(group)}
-								aria-label={`Remove group ${group}`}>
-							<span>✖</span>
-							</button>
+							<div class="group-bubble2">
+								<span class="group-name">{group}</span>
+								<button
+									class="remove-icon"
+									on:click={() => handleRemoveGroup(group)}
+									aria-label={`Remove group ${group}`}
+								>
+									<span>✖</span>
+								</button>
 							</div>
 						{/each}
 					</div>
@@ -363,11 +375,14 @@
 							<div class="scrollable-container">
 								{#each localSelectedGroups as group}
 									<div class="group-bubble2">
-									<span class="group-name">{group}</span>
-									<button class="remove-icon" on:click={() => removeGroupFromLocalList(group)}
-										aria-label={`Remove group ${group}`}>
-									<span>✖</span>
-									</button>
+										<span class="group-name">{group}</span>
+										<button
+											class="remove-icon"
+											on:click={() => removeGroupFromLocalList(group)}
+											aria-label={`Remove group ${group}`}
+										>
+											<span>✖</span>
+										</button>
 									</div>
 								{/each}
 							</div>
@@ -527,7 +542,7 @@
 		border: #e1e9f6;
 	}
 
-	.remove-icon{
+	.remove-icon {
 		background-color: #e1e9f6;
 		color: #000; /* Text color */
 		cursor: pointer;
