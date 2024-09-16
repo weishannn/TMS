@@ -4,7 +4,6 @@
 	import axios from 'axios';
 	import UserList from './CreateUserList.svelte';
 	import { Toaster, toast } from 'svelte-sonner';
-	import { refreshUserList } from '../stores/updateStore';
 </script>
 
 <div class="container">

@@ -200,10 +200,11 @@
 	<div class="container">
 		<header class="header">
 			<h4>Hello, {username}</h4>
+			<button class="header-h5" on:click={handleTMS}>Application</button>
+
 			{#if isAdmin}
-				<button class="header h5" on:click={handleUMS}>User Management</button>
+				<button class="header-h5" on:click={handleUMS}>User Management</button>
 			{/if}
-			<button class="header h5" on:click={handleTMS}>Application Page</button>
 			<button class="white-button" on:click={handleUpdate}>Edit Profile</button>
 		</header>
 
@@ -359,5 +360,15 @@
 
 	.modal-actions button {
 		margin: 0 0.5em;
+	}
+
+	.header-h5 {
+		margin: 0; /* Remove default margin */
+		font-size: 1em; /* Adjust font size if needed */
+		margin-left: 50px;
+	}
+
+	.header-h5:hover{
+    text-decoration: underline;
 	}
 </style>
