@@ -98,7 +98,7 @@
 
 	async function handleCreateUser() {
 		if (!inputUsername || !inputPassword || !inputAccount_status) {
-			toast.error('Please provide valid inputs.');
+			toast.error('Please provide valid inputs. (Username, Password, Account Status)');
 			return;
 		}
 		if (!validatePassword(inputPassword)) {

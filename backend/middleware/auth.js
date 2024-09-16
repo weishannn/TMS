@@ -45,6 +45,19 @@ const authenticateToken = (expectedStatus, userGroup) => (req, res, next) => {
         .json({ message: "Access Denied: IP address mismatch" });
     }
 
+    //verify browser
+    const tokenBrowser = decoded.browser;
+    const currentBrowser = req.headers["user-agent"];
+    if (tokenBrowser !== currentBrowser) {
+      // Invalidate the session if browsers mismatch
+      if (activeSessions[token]) {
+        delete activeSessions[token]; // Remove from session store
+      }
+      return res
+        .status(403)
+        .json({ message: "Access Denied: Browser mismatch" });
+    }
+
     // Attach user information to the request object
     req.user = decoded;
 

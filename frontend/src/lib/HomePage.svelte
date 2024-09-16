@@ -94,11 +94,7 @@
 
 	async function fetchUserProfile() {
 		try {
-			const token = localStorage.getItem('token');
 			const response = await axios.get('http://localhost:5000/api/users/currentUser', {
-				headers: {
-					Authorization: `Bearer ${token}` // Include the token in the Authorization header
-				},
 				withCredentials: true // Ensure cookies are sent with the request
 			});
 
@@ -136,15 +132,11 @@
 		}
 
 		try {
-			const token = localStorage.getItem('token'); // Get the JWT token from local storage
 
 			const response = await axios.put(
 				'http://localhost:5000/api/users/updateProfile',
 				{ username, email, password },
 				{
-					headers: {
-						Authorization: `Bearer ${token}` // Include the token in the Authorization header
-					},
 					withCredentials: true // Ensure cookies are sent with the request
 				}
 			);
@@ -160,6 +152,7 @@
 			if (error.response) {
 				// Server responded with a status other than 2xx
 				toast.error(`An error occurred: ${error.response.status}`);
+				redirectToLogin();
 			} else if (error.request) {
 				// The request was made but no response was received
 				toast.error('No response received from the server.');
@@ -194,6 +187,10 @@
 	function handleUpdate() {
 		showProfileModal = true; // Open profile modal
 	}
+
+	function handleLogout() {
+		goto('/login');
+	}
 </script>
 
 <body>
@@ -206,6 +203,7 @@
 				<button class="header-h5" on:click={handleUMS}>User Management</button>
 			{/if}
 			<button class="white-button" on:click={handleUpdate}>Edit Profile</button>
+			<button class="white-button" on:click={handleLogout}>Log Out</button>
 		</header>
 
 		<main></main>

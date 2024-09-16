@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const session = require("express-session");
+//const session = require("express-session");
 const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
 
@@ -30,14 +30,14 @@ app.use((req, res, next) => {
 
 // Middleware
 app.use(express.json());
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET, // Use session secret from .env file
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false }, // Set to true if using HTTPS
-  })
-);
+// app.use(
+//   session({
+//     secret: process.env.SESSION_SECRET, // Use session secret from .env file
+//     resave: false,
+//     saveUninitialized: true,
+//     cookie: { secure: false }, // Set to true if using HTTPS
+//   })
+// );
 
 // Import and use routes
 const userRoutes = require("./routes/userRoutes");

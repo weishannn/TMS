@@ -446,6 +446,7 @@ exports.login = async (req, res) => {
   const { username, password } = req.body;
   const ipAddress =
     req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+  const browser = req.headers["user-agent"];
 
   try {
     // Query database for user
@@ -476,7 +477,7 @@ exports.login = async (req, res) => {
 
               // Generate new token
               const token = jwt.sign(
-                { username: user.username, ipAddress }, // Include IP address
+                { username: user.username, ipAddress, browser }, // Include IP address
                 process.env.ACCESS_TOKEN_SECRET,
                 { expiresIn: "1h" } // Set token expiration
               );

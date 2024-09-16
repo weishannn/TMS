@@ -13,15 +13,15 @@ const queryAsync = (query, params) => {
   });
 };
 
-const checkGroup = (username, user_group) =>
+const checkGroup = (username, groupname) =>
   catchAsyncErrors(async (req, res, next) => {
-    if (!username || !user_group) {
+    if (!username || !groupname) {
       return res
         .status(400)
         .json({ error: "Username and user group are required" });
     }
 
-    const groupPattern = `%${user_group}%`;
+    const groupPattern = `%${groupname}%`;
 
     try {
       const results = await queryAsync(

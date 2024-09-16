@@ -26,7 +26,7 @@
 			} else {
 				// For other errors, display the error and notify the user
 				console.error('Error logging out:', error);
-				toast.error('Error logging out. Please try again.');
+				toast.error('Server Error. Please try again.');
 			}
 		}
 	}
@@ -37,7 +37,7 @@
 
 	async function handleSubmit() {
 		if (!username || !password) {
-			toast.error('Invalid Username or Password');
+			toast.error('Invalid Credentials');
 			return;
 		}
 
@@ -66,7 +66,7 @@
 		} catch (error) {
 			if (error.response) {
 				if (error.response.status === 401 || error.response.status === 403) {
-					toast.error('Invalid Username or Password');
+					toast.error('Invalid Credentials');
 					goto('/login');
 				} else {
 					toast.error(`An error occurred: ${error.response.status}`);

@@ -35,12 +35,10 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"@types/uuid": "^10.0.0",
 		"axios": "^1.7.7",
 		"jwt-decode": "^4.0.0",
 		"svelte-icons": "^2.1.0",
 		"svelte-routing": "^2.13.0",
-		"svelte-sonner": "^0.3.27",
-		"uuid": "^10.0.0"
+		"svelte-sonner": "^0.3.27"
 	}
 }
