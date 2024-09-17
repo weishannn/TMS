@@ -1,10 +1,10 @@
 <script>
 	// @ts-nocheck
 	import FaEdit from 'svelte-icons/fa/FaEdit.svelte';
-	import { Toaster, toast } from 'svelte-sonner';
 	import axios from 'axios';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { alertError, alertSuccess } from '../stores/errorHandle';
 
 	let inputUsername = '';
 	let inputEmail = '';
@@ -40,7 +40,7 @@
 			console.log('usergroup after fetch:', usergroup); // Ensure usergroup contains the expected data
 		} catch (error) {
 			console.error('Error fetching users:', error);
-			toast.error('Error fetching users.');
+			alertError('Error fetching users.');
 		}
 	};
 
@@ -72,11 +72,11 @@
 		const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
 
 		if (!lengthValid) {
-			toast.error('Password must be between 8 and 10 characters long.');
+			alertError('Password must be between 8 and 10 characters long.');
 			return false;
 		}
 		if (!hasAlphabet || !hasNumber || !hasSpecialChar) {
-			toast.error(
+			alertError(
 				'Password must contain at least one alphabet, one number, and one special character.'
 			);
 			return false;
@@ -104,11 +104,11 @@
 
 	async function handleCreateUser() {
 		if (!inputUsername || !inputPassword || !inputAccount_status) {
-			toast.error('Please provide valid inputs. (Username, Password, Account Status)');
+			alertError('Please provide valid inputs. (Username, Password, Account Status)');
 			return;
 		}
 		if (!validateUsername(inputUsername || inputUsername.length > 50)) {
-			toast.error('Username must be alphanumeric with no spaces. (Up to 50 characters)');
+			alertError('Username must be alphanumeric with no spaces. (Up to 50 characters)');
 			return;
 		}
 		if (!validatePassword(inputPassword)) {
@@ -116,7 +116,7 @@
 		}
 
 		if (inputEmail && !validateEmail(inputEmail)) {
-			toast.error('Invalid email address');
+			alertError('Invalid email address');
 			return;
 		}
 
@@ -152,14 +152,14 @@
 				}
 			}
 
-			toast.success('User added successfully!');
+			alertSuccess('User added successfully!');
 			resetForm();
 		} catch (error) {
 			if (error.response && error.response.status === 409) {
-				toast.error('Username already exists.');
+				alertError('Username already exists.');
 			} else {
 				console.error('Error saving user:', error);
-				toast.error('Error saving user. Please try again.');
+				alertError('Error saving user. Please try again.');
 				redirectToLogin();
 			}
 		}
@@ -184,7 +184,7 @@
 	// Edit user (Update)
 	async function handleEditUser() {
 		if (!editInputUsername) {
-			toast.error('Username is required.');
+			alertError('Username is required.');
 			return;
 		}
 
@@ -193,7 +193,7 @@
 		}
 
 		if (editInputEmail && !validateEmail(editInputEmail)) {
-			toast.error('Invalid email address');
+			alertError('Invalid email address');
 			return;
 		}
 
@@ -212,17 +212,17 @@
 				}
 			);
 
-			toast.success('User updated successfully!');
+			alertSuccess('User updated successfully!');
 			resetForm();
 		} catch (error) {
 			if (error.response && error.response.status === 409) {
-				toast.error('Username already exists.');
+				alertError('Username already exists.');
 			}
 			if (error.response && error.response.status === 411) {
-				toast.error('User already in the group.');
+				alertError('User already in the group.');
 			} else {
 				console.error('Error updating user:', error);
-				toast.error('Error updating user. Please try again.');
+				alertError('Error updating user. Please try again.');
 				redirectToLogin();
 			}
 		}
@@ -299,16 +299,14 @@
 					withCredentials: true // Ensure cookies are sent with the request
 				}
 			);
-			toast.success('Group deleted successfully.');
+			alertSuccess('Group deleted successfully.');
 		} catch (error) {
 			console.error('Error deleting group:', error.response ? error.response.data : error.message);
-			toast.error('Error deleting group.');
+			alertError('Error deleting group.');
 			redirectToLogin();
 		}
 	}
 </script>
-
-<Toaster />
 
 <div class="user-list">
 	<div class="add-users-form">

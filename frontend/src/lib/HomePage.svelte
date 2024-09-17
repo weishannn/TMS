@@ -5,7 +5,7 @@
 	import { goto } from '$app/navigation';
 	import axios from 'axios';
 	import { refreshUserList } from '../stores/updateStore';
-	import { Toaster, toast } from 'svelte-sonner';
+	import { alertError, alertSuccess } from '../stores/errorHandle';
 
 	export let username = '';
 	//export let usergroup = ''; // Default to an empty string
@@ -24,16 +24,22 @@
 
 	const fetchCurrentUser = async () => {
 		try {
-			// No need for Authorization header with cookies
 			const response = await axios.get('http://localhost:5000/api/users/currentUser', {
 				withCredentials: true // Ensure cookies are sent with the request
 			});
 			username = response.data.username;
 			currentemail = response.data.email;
+
+			await checkIfAdmin();
 		} catch (error) {
-			console.error('Error fetching current user:', error);
-			toast.error('Server issue. Please try again.');
-			redirectToLogin();
+			if ((error.response && error.response.status === 404) || error.response.status === 401) {
+				alertError('User not logged in.');
+				redirectToLogin();
+			} else if (error.response && error.response.status === 500) {
+				console.error('Error fetching current user:', error);
+				alertError('Server Error. Please try again.');
+				redirectToLogin();
+			}
 		}
 	};
 
@@ -49,11 +55,12 @@
 			isAdmin = response.data.isAdmin; // Set based on the backend response
 		} catch (error) {
 			if (error.response.status === 404) {
+				//console.log('User not admin');
 				isAdmin = false;
 			} else {
 				// Log other errors (e.g., server issues or unexpected responses)
 				console.error('Error checking if user is an admin:', error);
-				toast.error('Server issue. Please try again.');
+				//alertError('Server issue. Please try again.');
 			}
 		}
 	};
@@ -67,7 +74,6 @@
 	onMount(async () => {
 		// Fetch current user data and check admin status
 		await fetchCurrentUser();
-		await checkIfAdmin();
 		handleRedirection(); // Continue with redirection for both admin and non-admin
 	});
 
@@ -79,33 +85,17 @@
 		const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
 
 		if (!lengthValid) {
-			toast.error('Password must be between 8 and 10 characters long.');
+			alertError('Password must be between 8 and 10 characters long.');
 			return false;
 		}
 		if (!hasAlphabet || !hasNumber || !hasSpecialChar) {
-			toast.error(
+			alertError(
 				'Password must contain at least one alphabet, one number, and one special character.'
 			);
 			return false;
 		}
 
 		return true;
-	}
-
-	async function fetchUserProfile() {
-		try {
-			const response = await axios.get('http://localhost:5000/api/users/currentUser', {
-				withCredentials: true // Ensure cookies are sent with the request
-			});
-
-			// Update the UI with the new user data
-			const userData = response.data;
-			username = userData.username; // Update with fetched username
-			currentemail = userData.email; // Update with fetched email
-		} catch (error) {
-			console.error('Error fetching user profile:', error);
-			toast.error('Error fetching user profile.');
-		}
 	}
 
 	function validateEmail(email) {
@@ -117,12 +107,12 @@
 	async function handleSave() {
 		// Validate email or password presence
 		if (!email && !password) {
-			toast.error('Email or Password is required');
+			alertError('Email or Password is required');
 			return;
 		}
 
 		if (email && !validateEmail(email)) {
-			toast.error('Invalid email address');
+			alertError('Invalid email address');
 			return;
 		}
 
@@ -141,23 +131,23 @@
 			);
 
 			// On successful update
-			toast.success(response.data.message);
+			alertSuccess(response.data.message);
 			email = '';
 			password = '';
 
 			// Fetch the updated user profile
-			await fetchUserProfile();
+			await fetchCurrentUser();
 		} catch (error) {
 			if (error.response) {
 				// Server responded with a status other than 2xx
-				toast.error(`An error occurred: ${error.response.status}`);
+				alertError(`An error occurred: ${error.response.status}`);
 				redirectToLogin();
 			} else if (error.request) {
 				// The request was made but no response was received
-				toast.error('No response received from the server.');
+				alertError('No response received from the server.');
 			} else {
 				// Something happened in setting up the request
-				toast.error(`Error in setting up the request: ${error.message}`);
+				alertError(`Error in setting up the request: ${error.message}`);
 			}
 			console.error('Error details:', error);
 		}
@@ -187,8 +177,22 @@
 		showProfileModal = true; // Open profile modal
 	}
 
-	function handleLogout() {
-		goto('/login');
+	async function handleLogout() {
+		try {
+			// Ensure cookies are sent with the request
+			await axios.post('http://localhost:5000/api/users/logout', {}, { withCredentials: true });
+			alertSuccess('Logged out successfully.');
+			redirectToLogin();
+		} catch (error) {
+			if (error.response && error.response.status === 401) {
+				// Handle the case where the user is already logged out (no token)
+				console.log('User already logged out.');
+			} else {
+				// For other errors, display the error and notify the user
+				console.error('Error logging out:', error);
+				alertError('Server Error. Please try again.');
+			}
+		}
 	}
 </script>
 
@@ -235,8 +239,6 @@
 			</div>
 		{/if}
 	</div>
-	<Toaster />
-	<!-- Add the Toaster component here -->
 </body>
 
 <style>

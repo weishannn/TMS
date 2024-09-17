@@ -3,9 +3,9 @@
 	import { onMount, onDestroy } from 'svelte';
 	import axios from 'axios';
 	import UserList from './CreateUserList.svelte';
-	import { Toaster, toast } from 'svelte-sonner';
 	import { refreshUserList } from '../stores/updateStore';
 	import { goto } from '$app/navigation';
+	import { alertError, alertSuccess } from '../stores/errorHandle';
 
 	let users = [];
 	let availableGroups = [];
@@ -30,9 +30,14 @@
 			});
 			username = response.data.username;
 		} catch (error) {
-			console.error('Error fetching current user:', error);
-			toast.error('Server issue. Please try again.');
-			redirectToLogin();
+			if (error.response && error.response.status === 404) {
+				alertError('User not found.');
+				redirectToLogin();
+			} else if (error.response && error.response.status === 500) {
+				console.error('Error fetching current user:', error);
+				alertError('Server Error. Please try again.');
+				redirectToLogin();
+			}
 		}
 	};
 
@@ -47,7 +52,7 @@
 			isAdmin = response.data.isAdmin;
 		} catch (error) {
 			console.error('Error checking if user is an admin:', error);
-			toast.error('Server issue. Please try again.');
+			alertError('Server issue. Please try again.');
 			redirectToLogin();
 		}
 	};
@@ -62,7 +67,7 @@
 			users = response.data.users;
 		} catch (error) {
 			console.error('Error fetching users:', error);
-			toast.error('Server issue. Please try again.');
+			alertError('Server issue. Please try again.');
 		}
 	};
 
@@ -76,7 +81,7 @@
 			availableGroups = response.data.groups;
 		} catch (error) {
 			console.error('Error fetching groups:', error);
-			toast.error('Server issue. Please try again.');
+			alertError('Server issue. Please try again.');
 		}
 	};
 
@@ -85,7 +90,7 @@
 		await fetchCurrentUser();
 		await checkIfAdmin();
 
-		console.log('onmount', isAdmin, username);
+		//console.log('onmount', isAdmin, username);
 
 		if (isAdmin) {
 			await fetchUsers();
@@ -95,6 +100,7 @@
 			unsubscribe = refreshUserList.subscribe(async (refresh) => {
 				if (refresh) {
 					await fetchUsers();
+					await fetchGroups();
 					refreshUserList.set(false); // Reset the store
 				}
 			});
@@ -126,12 +132,12 @@
 
 	async function handleSaveGroup() {
 		if (!groupName) {
-			toast.error('Group name is required');
+			alertError('Group name is required');
 			return;
 		}
 
 		if (!validateGroup(groupName) || groupName.length > 50) {
-			toast.error('Group name must be alphanumeric with no spaces. (Up to 50 characters)');
+			alertError('Group name must only be alphanumeric and/or underscore. (Up to 50 characters)');
 			return;
 		}
 
@@ -141,7 +147,7 @@
 				(group) => group.user_group && group.user_group.toLowerCase() === groupName.toLowerCase()
 			)
 		) {
-			toast.error('Group already exists');
+			alertError('Group already exists');
 			return;
 		}
 
@@ -158,12 +164,17 @@
 			errorMessage = '';
 			showGroupModal = false;
 
-			toast.success(response.data.message);
+			alertSuccess(response.data.message);
 			await fetchGroups();
 		} catch (error) {
-			console.error('Error creating group:', error);
-			toast.error('Failed to create group. Please try again.');
-			redirectToLogin();
+			if (error.response && error.response.status === 401) {
+				alertError('Unauthorized. Please login again.');
+				redirectToLogin();
+			} else {
+				console.error('Error creating group:', error);
+				alertError('Failed to create group. Please try again.');
+				//redirectToLogin();
+			}
 		}
 	}
 </script>
@@ -172,7 +183,6 @@
 	<p></p>
 {:else if isAdmin}
 	<div class="container">
-		<Toaster />
 		<div class="admin-content">
 			<h1>User Management</h1>
 			<button on:click={handleCreateGroup}>+ Group</button>

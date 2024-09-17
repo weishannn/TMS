@@ -2,8 +2,8 @@
 	// @ts-nocheck
 	import axios from 'axios';
 	import { goto } from '$app/navigation';
-	import { Toaster, toast } from 'svelte-sonner';
 	import { onMount } from 'svelte';
+	import { alertError, alertSuccess } from '../../stores/errorHandle';
 
 	let username = '';
 	let password = '';
@@ -12,21 +12,15 @@
 		try {
 			// Ensure cookies are sent with the request
 			await axios.post('http://localhost:5000/api/users/logout', {}, { withCredentials: true });
-			toast.success('Logged out successfully.');
-
-			// Redirect to login page
-			goto('/login');
+			alertSuccess('Logged out successfully.');
 		} catch (error) {
 			if (error.response && error.response.status === 401) {
 				// Handle the case where the user is already logged out (no token)
 				console.log('User already logged out.');
-				// Optionally, display a toast message or redirect to the login page
-				toast.info('User already logged out.');
-				goto('/login');
 			} else {
 				// For other errors, display the error and notify the user
 				console.error('Error logging out:', error);
-				toast.error('Server Error. Please try again.');
+				alertError('Server Error. Please try again.');
 			}
 		}
 	}
@@ -37,7 +31,7 @@
 
 	async function handleSubmit() {
 		if (!username || !password) {
-			toast.error('Invalid Credentials');
+			alertError('Invalid Credentials');
 			return;
 		}
 
@@ -59,24 +53,21 @@
 			console.log('Login successful.');
 
 			// Show success message
-			toast.success('Login successful! Redirecting to homepage...');
+			alertSuccess('Login successful! Redirecting to homepage...');
 
 			// Redirect to homepage
 			goto('/homepage/applications');
 		} catch (error) {
 			if (error.response) {
-				if (error.response.status === 401 || error.response.status === 403) {
-					toast.error('Invalid Credentials');
+				if (error.response.status === 401) {
+					alertError('Invalid Credentials');
 					goto('/login');
 				} else {
-					toast.error(`An error occurred: ${error.response.status}`);
+					alertError(`An error occurred: ${error.response.status}`);
 				}
 			} else if (error.request) {
-				toast.error('No response received from the server.');
-			} else {
-				toast.error(`Error in setting up the request: ${error.message}`);
+				alertError('No response received from the server.');
 			}
-			console.error('Error details:', error);
 		}
 	}
 </script>
@@ -94,8 +85,6 @@
 			<button on:click={handleSubmit}>Login</button>
 		</div>
 	</div>
-	<Toaster />
-	<!-- Add the Toaster component here -->
 </body>
 
 <style>
