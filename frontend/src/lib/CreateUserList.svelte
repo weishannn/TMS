@@ -87,8 +87,14 @@
 
 	function validateEmail(email) {
 		// Regular expression for validating an email address
-		const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 		return emailPattern.test(email);
+	}
+
+	function validateUsername(username) {
+		// Regular expression for validating an email address
+		const usernamePattern = /^[a-zA-Z0-9]+$/; // Alphanumeric with no spaces
+		return usernamePattern.test(username);
 	}
 
 	// Redirect to login page
@@ -99,6 +105,10 @@
 	async function handleCreateUser() {
 		if (!inputUsername || !inputPassword || !inputAccount_status) {
 			toast.error('Please provide valid inputs. (Username, Password, Account Status)');
+			return;
+		}
+		if (!validateUsername(inputUsername || inputUsername.length > 50)) {
+			toast.error('Username must be alphanumeric with no spaces. (Up to 50 characters)');
 			return;
 		}
 		if (!validatePassword(inputPassword)) {
@@ -355,7 +365,7 @@
 	<ul class="user-list-table">
 		{#each users as user (user.username)}
 			<li class="user-row">
-				{#if isEditing && selectedUser && selectedUser.username === user.username && user.username !== 'Root'}
+				{#if isEditing && selectedUser && selectedUser.username === user.username && user.username !== 'Admin'}
 					<!-- Edit mode -->
 					<div class="form-group">
 						<input type="text" value={editInputUsername} readonly class="readonly-username" />
@@ -421,7 +431,7 @@
 					<div class="user-account_status">{user.accountStatus}</div>
 
 					<div class="actions">
-						{#if user.username !== 'Root'}
+						{#if user.username !== 'Admin'}
 							<button class="edit-button" on:click={() => handleEdit(user)}>
 								<div style="width: 20px;">
 									<FaEdit />

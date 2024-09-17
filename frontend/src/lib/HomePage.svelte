@@ -110,7 +110,7 @@
 
 	function validateEmail(email) {
 		// Regular expression for validating an email address
-		const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 		return emailPattern.test(email);
 	}
 
@@ -132,7 +132,6 @@
 		}
 
 		try {
-
 			const response = await axios.put(
 				'http://localhost:5000/api/users/updateProfile',
 				{ username, email, password },
@@ -366,7 +365,7 @@
 		margin-left: 50px;
 	}
 
-	.header-h5:hover{
-    text-decoration: underline;
+	.header-h5:hover {
+		text-decoration: underline;
 	}
 </style>

@@ -59,6 +59,7 @@ exports.checkisInGroup = catchAsyncErrors(async (req, res) => {
 // Update user own profile
 exports.updateProfile = catchAsyncErrors(async (req, res) => {
   const { username, password, email } = req.body;
+  const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
   // Initialize the query and values array
   let query = "UPDATE accounts SET ";
@@ -72,7 +73,16 @@ exports.updateProfile = catchAsyncErrors(async (req, res) => {
     values.push(hashedPassword);
     updateMessage.push("Profile Password updated successfully");
   }
+
   if (email) {
+    // Validate the email format
+    if (!emailPattern.test(email)) {
+      return res.status(400).json({
+        error: "Invalid email format. Please enter a valid email address.",
+      });
+    }
+
+    // If the email is valid, proceed with the update query
     query += "email = ?, ";
     values.push(email);
     updateMessage.push("Profile Email updated successfully");
@@ -102,6 +112,7 @@ exports.updateProfile = catchAsyncErrors(async (req, res) => {
 // Edit other user profile
 exports.editOtherUserProfile = catchAsyncErrors(async (req, res) => {
   const { username, password, email, accountStatus, userGroups } = req.body;
+  const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
   // Initialize the query and values array for account updates
   let accountQuery = "UPDATE accounts SET ";
@@ -115,18 +126,26 @@ exports.editOtherUserProfile = catchAsyncErrors(async (req, res) => {
     accountValues.push(hashedPassword);
     updateMessages.push("Profile Password updated successfully");
   }
+
   if (email) {
+    // Validate the email format
+    if (!emailPattern.test(email)) {
+      return res.status(400).json({
+        error: "Invalid email format. Please enter a valid email address.",
+      });
+    }
+
     accountQuery += "email = ?, ";
     accountValues.push(email);
     updateMessages.push("Profile Email updated successfully");
   }
-  // Skip accountStatus update if the username is "Root"
-  if (accountStatus && username !== "Root") {
+  // Skip accountStatus update if the username is "Admin"
+  if (accountStatus && username !== "Admin") {
     accountQuery += "accountStatus = ?, ";
     accountValues.push(accountStatus);
     updateMessages.push("Profile Status updated successfully");
-  } else if (username === "Root" && accountStatus) {
-    updateMessages.push("Root account status cannot be updated.");
+  } else if (username === "Admin" && accountStatus) {
+    updateMessages.push("Admin account status cannot be updated.");
   }
 
   // Ensure the account query has fields to update
@@ -327,6 +346,25 @@ exports.createUser = catchAsyncErrors(async (req, res) => {
 
   const { username, password, email, accountStatus } = req.body;
 
+  // Define validation patterns
+  const usernamePattern = /^[a-zA-Z0-9]+$/; // Alphanumeric with no spaces
+  const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/; // Email pattern
+
+  // Validate username
+  if (!usernamePattern.test(username) || username.length > 50) {
+    return res.status(400).json({
+      error:
+        "Username must be alphanumeric and contain no spaces. Max length is 50 characters.",
+    });
+  }
+
+  // Validate email
+  if (email && !emailPattern.test(email)) {
+    return res.status(400).json({
+      error: "Invalid email format. Please enter a valid email address.",
+    });
+  }
+
   // Check if username already exists
   db.query(
     "SELECT * FROM accounts WHERE username = ?",
@@ -427,13 +465,27 @@ exports.putUserIntoGroup = catchAsyncErrors(async (req, res) => {
 //create group function
 exports.createGroup = catchAsyncErrors(async (req, res) => {
   console.log("CreateGroup request received");
+
   const { userGroup } = req.body;
+
+  // Define the alphanumeric pattern (no spaces allowed)
+  const groupNamePattern = /^[a-zA-Z0-9_]+$/;
+
+  // Validate group name
+  if (!groupNamePattern.test(userGroup) || userGroup.length > 50) {
+    return res.status(400).json({
+      error:
+        "Group name must be alphanumeric (including underscores) and no more than 50 characters long.",
+    });
+  }
+
+  // Proceed with inserting the group into the database if validation passes
   db.query(
     "INSERT INTO usergroup (username, user_group) VALUES ('', ?)",
     [userGroup],
     (err, result) => {
       if (err) {
-        console.error("Error during registration:", err);
+        console.error("Error during group creation:", err);
         return res.status(500).json({ error: err.message });
       }
       res.json({ message: "Group created successfully" });

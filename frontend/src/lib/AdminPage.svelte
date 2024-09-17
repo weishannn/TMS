@@ -118,9 +118,20 @@
 		showGroupModal = false;
 	}
 
+	function validateGroup(group) {
+		// Regular expression for validating an email address
+		const groupPattern = /^[a-zA-Z0-9_]+$/; // Alphanumeric with no spaces
+		return groupPattern.test(group);
+	}
+
 	async function handleSaveGroup() {
 		if (!groupName) {
 			toast.error('Group name is required');
+			return;
+		}
+
+		if (!validateGroup(groupName) || groupName.length > 50) {
+			toast.error('Group name must be alphanumeric with no spaces. (Up to 50 characters)');
 			return;
 		}
 
