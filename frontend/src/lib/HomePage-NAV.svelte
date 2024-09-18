@@ -1,9 +1,8 @@
 <script>
 	// @ts-nocheck
-	import AdminPage from '$lib/AdminPage.svelte';
+	import axios from 'axios';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import axios from 'axios';
 	import { refreshUserList } from '../stores/updateStore';
 	import { alertError, alertSuccess } from '../stores/errorHandle';
 
@@ -60,7 +59,6 @@
 			} else {
 				// Log other errors (e.g., server issues or unexpected responses)
 				console.error('Error checking if user is an admin:', error);
-				//alertError('Server issue. Please try again.');
 			}
 		}
 	};
@@ -200,13 +198,17 @@
 	<div class="container">
 		<header class="header">
 			<h4>Hello, {username}</h4>
-			<button class="header-h5" on:click={handleTMS}>Application</button>
+			<div>
+				<button class="header-h5" on:click={handleTMS}>Application</button>
 
-			{#if isAdmin}
-				<button class="header-h5" on:click={handleUMS}>User Management</button>
-			{/if}
-			<button class="white-button" on:click={handleUpdate}>Edit Profile</button>
-			<button class="white-button" on:click={handleLogout}>Log Out</button>
+				{#if isAdmin}
+					<button class="header-h5" on:click={handleUMS}>User Management</button>
+				{/if}
+			</div>
+			<div>
+				<button class="white-button" on:click={handleUpdate}>Edit Profile</button>
+				<button class="white-button" on:click={handleLogout}>Log Out</button>
+			</div>
 		</header>
 
 		<main></main>

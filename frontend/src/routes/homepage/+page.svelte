@@ -1,9 +1,13 @@
 <script>
-	import HomePage from '$lib/HomePage.svelte';
-</script>
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 
-<body style="margin:0;padding:0">
-	<div>
-		<HomePage />
-	</div>
-</body>
+	onMount(() => {
+		// Replace this condition with your actual logic
+		const shouldRedirect = true; // or some condition to check
+
+		if (shouldRedirect) {
+			goto('/homepage/applications');
+		}
+	});
+</script>

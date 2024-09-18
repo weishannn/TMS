@@ -39,8 +39,15 @@
 			usergroup = response.data;
 			console.log('usergroup after fetch:', usergroup); // Ensure usergroup contains the expected data
 		} catch (error) {
+			if (error.response && error.response.status === 404) {
+				alertError('User not logged in.');
+			} else if (error.response && error.response.status === 401) {
+				alertError('Unauthorized access.');
+				redirectToLogin();
+			} else if (error.response && error.response.status === 500) {
+				alertError('Server Error. Unable to fetch users. Please try again.');
+			}
 			console.error('Error fetching users:', error);
-			alertError('Error fetching users.');
 		}
 	};
 
@@ -157,10 +164,13 @@
 		} catch (error) {
 			if (error.response && error.response.status === 409) {
 				alertError('Username already exists.');
+			} else if (error.response && error.response.status === 401) {
+				console.log(error);
+				alertError('Unauthorized access.');
+				redirectToLogin();
 			} else {
 				console.error('Error saving user:', error);
-				alertError('Error saving user. Please try again.');
-				redirectToLogin();
+				alertError('Server Error. Failed saving user. Please try again.');
 			}
 		}
 	}
@@ -217,13 +227,15 @@
 		} catch (error) {
 			if (error.response && error.response.status === 409) {
 				alertError('Username already exists.');
-			}
-			if (error.response && error.response.status === 411) {
+			} else if (error.response && error.response.status === 411) {
 				alertError('User already in the group.');
-			} else {
+			} else if (error.response && error.response.status === 401) {
+				console.log(error);
+				alertError('Unauthorized access.');
+				redirectToLogin();
+			} else if (error.response && error.response.status === 500) {
 				console.error('Error updating user:', error);
 				alertError('Error updating user. Please try again.');
-				redirectToLogin();
 			}
 		}
 	}
@@ -301,9 +313,13 @@
 			);
 			alertSuccess('Group deleted successfully.');
 		} catch (error) {
+			if (error.response && error.response.status === 401) {
+				alertError('Unauthorized access.');
+				redirectToLogin();
+			} else if (error.response && error.response.status === 500) {
+				alertError('Error deleting group. Please try again.');
+			}
 			console.error('Error deleting group:', error.response ? error.response.data : error.message);
-			alertError('Error deleting group.');
-			redirectToLogin();
 		}
 	}
 </script>

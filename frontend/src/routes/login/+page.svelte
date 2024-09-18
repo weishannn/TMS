@@ -62,8 +62,10 @@
 				if (error.response.status === 401) {
 					alertError('Invalid Credentials');
 					goto('/login');
-				} else {
-					alertError(`An error occurred: ${error.response.status}`);
+				}
+				if (error.response.status === 403) {
+					alertError('Access Denied');
+					goto('/login');
 				}
 			} else if (error.request) {
 				alertError('No response received from the server.');
