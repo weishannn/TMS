@@ -53,7 +53,7 @@
 			);
 			isAdmin = response.data.isAdmin; // Set based on the backend response
 		} catch (error) {
-			if (error.response.status === 404) {
+			if (error.response.status === 404 || error.response.status === 401) {
 				//console.log('User not admin');
 				isAdmin = false;
 			} else {

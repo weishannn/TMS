@@ -73,11 +73,7 @@ router.get(
   authenticateToken("active", "admin"),
   userController.getUsers
 );
-router.get(
-  "/getGroups",
-  authenticateToken("active", "admin"),
-  userController.getGroups
-);
+router.get("/getGroups", authenticateToken("active"), userController.getGroups);
 
 //editOtherUserProfile
 router.put(

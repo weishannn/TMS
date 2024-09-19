@@ -30,8 +30,12 @@ exports.checkAdmin = catchAsyncErrors(async (req, res) => {
 
     res.status(200).json({ isAdmin: true });
   } catch (err) {
-    console.error("Error checking admin status:", err);
-    res.status(500).json({ error: "Internal Server Error" });
+    if (err.message === "Unauthorized" || err.statusCode === 401) {
+      return;
+    } else {
+      console.error("Error checking admin status:", err);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
   }
 });
 
@@ -327,16 +331,36 @@ exports.getUsersAndGroups = catchAsyncErrors(async (req, res) => {
 
 // Get the current user using the username from the token
 exports.getCurrentUser = catchAsyncErrors(async (req, res) => {
-  const username = req.user.username; // Fetch username from token
+  const token = req.cookies.token; // Extract token from cookies - to not be dependent on the middleware
 
-  const query = "SELECT * FROM accounts WHERE username = ?"; // Query the accounts table
-  db.query(query, [username], (err, results) => {
-    if (err) return res.status(500).json({ message: "Server Error" });
-    if (results.length === 0)
-      return res.status(404).json({ message: "User not found" });
+  // Check if token exists and is in the active session store
+  if (!token || !activeSessions[token]) {
+    return res
+      .status(401)
+      .json({ message: "Access Denied: Token is required" });
+  }
 
-    res.json(results[0]); // Return the user data
-  });
+  try {
+    // Verify the token
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const username = decoded.username;
+
+    // Query the accounts table using the username from the token
+    const query = "SELECT * FROM accounts WHERE username = ?";
+    db.query(query, [username], (err, results) => {
+      if (err) {
+        return res.status(500).json({ message: "Server Error" });
+      }
+
+      if (results.length === 0) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json(results[0]); // Return the user data
+    });
+  } catch (err) {
+    return res.status(403).json({ message: "Invalid token" });
+  }
 });
 
 //PUSH >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

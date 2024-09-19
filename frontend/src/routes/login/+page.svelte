@@ -8,27 +8,6 @@
 	let username = '';
 	let password = '';
 
-	async function handleLogout() {
-		try {
-			// Ensure cookies are sent with the request
-			await axios.post('http://localhost:5000/api/users/logout', {}, { withCredentials: true });
-			alertSuccess('Logged out successfully.');
-		} catch (error) {
-			if (error.response && error.response.status === 401) {
-				// Handle the case where the user is already logged out (no token)
-				console.log('User already logged out.');
-			} else {
-				// For other errors, display the error and notify the user
-				console.error('Error logging out:', error);
-				alertError('Server Error. Please try again.');
-			}
-		}
-	}
-
-	onMount(() => {
-		handleLogout();
-	});
-
 	async function handleSubmit() {
 		if (!username || !password) {
 			alertError('Invalid Credentials');
@@ -53,7 +32,7 @@
 			console.log('Login successful.');
 
 			// Show success message
-			alertSuccess('Login successful! Redirecting to homepage...');
+			alertSuccess('Login successful! Redirecting to applications...');
 
 			// Redirect to homepage
 			goto('/homepage/applications');

@@ -577,6 +577,7 @@
 		border: red;
 		color: red; /* Text color */
 		cursor: pointer;
+		background-color: #e1e9f6;
 	}
 
 	.scrollable-container {
