@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/userController");
+const taskController = require("../controllers/taskController");
 const authenticateToken = require("../middleware/auth");
 
 // Define routes
@@ -73,6 +74,8 @@ router.get(
   authenticateToken("active", "admin"),
   userController.getUsers
 );
+
+//get groups (for both admin and pl users)
 router.get("/getGroups", authenticateToken("active"), userController.getGroups);
 
 //editOtherUserProfile
@@ -88,5 +91,14 @@ router.delete(
   authenticateToken("active", "admin"),
   userController.deleteUserGroup
 );
+
+// task controller
+router.post(
+  "/createApp",
+  // authenticateToken("active"),
+  taskController.createApp
+);
+
+router.get("/getApps", taskController.getApps);
 
 module.exports = router;
