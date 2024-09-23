@@ -100,5 +100,7 @@ router.post(
 );
 
 router.get("/getApps", taskController.getApps);
+router.get("/:appAcronym", taskController.getAppByAcronym);
+router.put("/editApp", taskController.editApp);
 
 module.exports = router;

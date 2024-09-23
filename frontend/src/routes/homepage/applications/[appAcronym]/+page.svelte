@@ -1,0 +1,258 @@
+<script>
+	//@ts-nocheck
+	import axios from 'axios';
+	import { alertError, alertSuccess } from '../../../../stores/errorHandle.js';
+	import HomePageNav from '$lib/HomePage-NAV.svelte';
+	import TaskList from '$lib/TaskList.svelte';
+	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
+
+	export let data;
+	const { appAcronym } = data;
+
+	let appDetails;
+	let inTMS = false;
+	let name = '';
+
+	console.log('AppAcronym prop:', appAcronym); // Log to check the received appAcronym
+
+	const fetchspecificapplications = async () => {
+		console.log('appAcronym', appAcronym); // Log the appAcronym being fetched
+
+		try {
+			const response = await axios.get(`http://localhost:5000/api/users/${appAcronym}`, {
+				// withCredentials: true
+			});
+
+			const appDetailsArray = response.data; // Store the fetched application data
+
+			// Check if the array is not empty and access the first item
+			if (appDetailsArray.length > 0) {
+				const appDetails = appDetailsArray[0]; // Get the first object in the array
+				console.log('Application details:', appDetails.App_Acronym); // Access App_Acronym from the first object
+				inTMS = true;
+				name = appDetails.App_Acronym;
+			} else {
+				console.error('No application found in the response:', appDetailsArray);
+			}
+		} catch (error) {
+			if (error.response) {
+				// Check for specific error responses
+				if (error.response.status === 404) {
+					alertError('Application not found.');
+				} else if (error.response.status === 401) {
+					alertError('Unauthorized access.');
+					goto('/login'); // Redirect to login if unauthorized
+				} else if (error.response.status === 500) {
+					alertError('Server Error. Unable to fetch applications. Please try again.');
+				}
+			} else {
+				// Handle errors that are not related to the response
+				alertError('An unexpected error occurred. Please try again.');
+			}
+			console.error('Error fetching applications:', error);
+		}
+	};
+
+	onMount(() => {
+		fetchspecificapplications();
+	});
+
+	function handleCreatePlan() {
+		showCreateModal = true;
+	}
+	function handleSubmitPlan() {
+		//something
+	}
+	function handleClosePlan() {
+		showCreateModal = false;
+	}
+
+	let showCreateModal = false;
+	let acronym = '';
+	let appRNumber = '';
+	let appDescription = '';
+	let appStartDate = '';
+	let appEndDate = '';
+</script>
+
+<body style="margin:0;padding:0">
+	<HomePageNav {inTMS} {name} />
+
+	{#if inTMS}
+		<div class="container">
+			<div class="content">
+				<h1>Task Management Board</h1>
+				<button on:click={handleCreatePlan}>+ CREATE PLAN</button>
+			</div>
+		</div>
+	{:else}
+		<p>No application details found or loading...</p>
+	{/if}
+
+	<!-- EDIT THE FEILDS HEREEEE -->
+	{#if showCreateModal}
+		<div class="modal">
+			<div class="modal-content">
+				<h2>Create Application</h2>
+				<div class="form-group">
+					<label for="appAcronym">App Acronym:</label>
+					<h7 id="appAcronym">{appAcronym}</h7>
+				</div>
+				<div class="form-group">
+					<label for="appRNumber">Plan Name:</label>
+					<input id="appRNumber" type="text" bind:value={appRNumber} placeholder="Name" />
+				</div>
+				<div class="form-group">
+					<label for="appStartDate">Start Date:</label>
+					<input id="appStartDate" type="date" bind:value={appStartDate} placeholder="DD/MM/YY" />
+				</div>
+				<div class="form-group">
+					<label for="appEndDate">End Date:</label>
+					<input id="appEndDate" type="date" bind:value={appEndDate} placeholder="DD/MM/YY" />
+				</div>
+				<!-- app permit done -->
+				<div class="form-group">
+					<label for="appPermitDone">Color:</label>
+					<div class="form-group-permit">
+						<select id="appPermitDone" bind:value={appDescription}>
+							<option value="">Color</option>
+							<!-- {#each availableGroups as group} -->
+							<!-- <option value={group.user_group}>{group.user_group}</option>
+							{/each} -->
+						</select>
+					</div>
+				</div>
+
+				<div class="modal-actions">
+					<button on:click={handleSubmitPlan}>Create Application</button>
+					<button on:click={handleClosePlan}>Cancel</button>
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<TaskList />
+</body>
+
+<style>
+	.container {
+		display: flex;
+		flex-direction: column;
+		height: 15vh;
+	}
+
+	button {
+		padding: 0.5em;
+		border: none;
+		border-radius: 4px;
+		background-color: black;
+		color: white;
+		font-size: 1em;
+		cursor: pointer;
+		margin-right: 150px;
+	}
+
+	button:hover {
+		background-color: #333;
+	}
+
+	.content {
+		padding: 0.5em 1em;
+		color: #000;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		height: 50px;
+		margin-top: 20px;
+	}
+
+	.content h1 {
+		padding: 1em;
+		margin-left: 50px;
+	}
+
+	.modal {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background-color: rgba(0, 0, 0, 0.5);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 1000;
+	}
+
+	.modal-content {
+		background-color: #fff;
+		padding: 2em;
+		border-radius: 8px;
+		width: 500px;
+		max-width: 100%;
+		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+	}
+
+	.modal-content h2 {
+		margin-top: 0;
+		text-align: center;
+	}
+
+	.form-group {
+		margin-bottom: 1em;
+		display: flex;
+		align-items: center;
+	}
+
+	.form-group label {
+		margin-right: 1em;
+		flex: 1;
+		white-space: nowrap;
+	}
+
+	.form-group h7 {
+		flex: 2;
+		font-weight: bold;
+	}
+
+	.form-group-permit {
+		flex: 2;
+	}
+
+	.form-group-permit select,
+	.form-group input {
+		width: 100%;
+		padding: 0.5em;
+		border: 1px solid #ccc;
+		border-radius: 4px;
+		background-color: #c9c9c9;
+		flex: 2;
+	}
+
+	.inputdescription {
+		width: 100%;
+		height: 100px;
+		padding: 0.5em;
+		border: 1px solid #ccc;
+		border-radius: 4px;
+		background-color: #c9c9c9;
+		flex: 2;
+	}
+
+	.modal-actions {
+		margin-top: 1em;
+		text-align: center;
+	}
+
+	.modal-actions button {
+		margin: 0 0.5em;
+	}
+
+	.char-limit {
+		display: block;
+		margin-top: 5px; /* Adjust the margin to position it closer to the textarea */
+		font-size: 12px; /* Make the text smaller if needed */
+		color: #888; /* Optional: change the color to a subtle grey */
+	}
+</style>

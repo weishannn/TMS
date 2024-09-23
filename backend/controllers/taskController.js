@@ -4,9 +4,12 @@ const jwt = require("jsonwebtoken");
 const checkGroup = require("../middleware/checkGroup");
 const { activeSessions } = require("../utils/config/sessionStore");
 
+//APPLICATION >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 //PUSH >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 //create application function
 exports.createApp = catchAsyncErrors(async (req, res) => {
+  console.log("CreateApp request received");
+  console.log(req.body);
   const {
     appAcronym,
     appDescription,
@@ -94,3 +97,97 @@ exports.getApps = catchAsyncErrors(async (req, res) => {
     res.json(result);
   });
 });
+
+// Get application by acronym
+exports.getAppByAcronym = catchAsyncErrors(async (req, res) => {
+  const { appAcronym } = req.params;
+
+  if (!appAcronym) {
+    return res.status(400).json({ error: "App Acronym is required" });
+  }
+
+  db.query(
+    "SELECT * FROM application WHERE App_Acronym = ?",
+    [appAcronym],
+    (err, result) => {
+      if (err) {
+        console.error("Error during application retrieval:", err);
+        return res.status(500).json({ error: err.message });
+      }
+      res.json(result);
+    }
+  );
+});
+
+//PUT >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+// edit application
+exports.editApp = catchAsyncErrors(async (req, res) => {
+  const {
+    appAcronym,
+    appDescription,
+    appRNumber,
+    appStartDate,
+    appEndDate,
+    appPermitCreate,
+    appPermitOpen,
+    appPermitToDo,
+    appPermitDoing,
+    appPermitDone,
+  } = req.body;
+
+  if (!appAcronym || !appRNumber || !appStartDate || !appEndDate) {
+    return res.status(400).json({
+      error:
+        "Missing fields. App Acronym, R Number, Start Date, and End Date are required.",
+    });
+  }
+
+  // Prepare the query with all fields to be updated (except App_Acronym and App_Rnumber)
+  const query = `
+    UPDATE application
+    SET
+      App_Description = ?,
+      App_startDate = ?,
+      App_endDate = ?,
+      App_permit_Create = ?,
+      App_permit_Open = ?,
+      App_permit_toDoList = ?,
+      App_permit_Doing = ?,
+      App_permit_Done = ?
+    WHERE App_Acronym = ? AND App_Rnumber = ?
+  `;
+
+  // Prepare the values array for the query
+  const values = [
+    appDescription, // App_Description
+    appStartDate, // App_startDate
+    appEndDate, // App_endDate
+    appPermitCreate, // App_permit_create
+    appPermitOpen, // App_permit_open
+    appPermitToDo, // App_permit_todo
+    appPermitDoing, // App_permit_doing
+    appPermitDone, // App_permit_done
+    appAcronym, // WHERE App_Acronym = ?
+    appRNumber, // WHERE App_Rnumber = ?
+  ];
+
+  // Execute the update query
+  db.query(query, values, (err, result) => {
+    if (err) {
+      console.error("Error during application update:", err);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+
+    if (result.affectedRows === 0) {
+      return res
+        .status(404)
+        .json({ error: "Application not found or no changes made." });
+    }
+
+    return res
+      .status(200)
+      .json({ message: "Application updated successfully." });
+  });
+});
+
+//PLAN >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

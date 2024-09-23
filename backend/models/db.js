@@ -19,25 +19,25 @@ pool.getConnection((err, connection) => {
   }
   console.log("Connected to the MySQL database");
 
-  // Perform queries here
-  connection.query("SELECT * FROM accounts", (err, accounts) => {
-    if (err) {
-      console.error("Error fetching accounts:", err);
-      connection.release();
-      return;
-    }
+  // // Perform queries here
+  // connection.query("SELECT * FROM accounts", (err, accounts) => {
+  //   if (err) {
+  //     console.error("Error fetching accounts:", err);
+  //     connection.release();
+  //     return;
+  //   }
 
-    console.log("Accounts:", accounts);
+  //   console.log("Accounts:", accounts);
 
-    connection.query("SELECT * FROM usergroup", (err, userGroups) => {
-      if (err) {
-        console.error("Error fetching user groups:", err);
-      } else {
-        console.log("User Groups:", userGroups);
-      }
-      connection.release();
-    });
-  });
+  //   connection.query("SELECT * FROM usergroup", (err, userGroups) => {
+  //     if (err) {
+  //       console.error("Error fetching user groups:", err);
+  //     } else {
+  //       console.log("User Groups:", userGroups);
+  //     }
+  //     connection.release();
+  //   });
+  // });
 });
 
 module.exports = pool;

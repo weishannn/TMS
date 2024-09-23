@@ -16,8 +16,6 @@
 	let password = '';
 
 	let isAdmin = false;
-	export let inTMS = false;
-	export let name = '';
 
 	const redirectToLogin = () => {
 		goto('/login');
@@ -199,12 +197,7 @@
 <body>
 	<div class="container">
 		<header class="header">
-			{#if inTMS}
-				<h4>Application: {name}</h4>
-			{:else}
-				<h4>Hello, {username}</h4>
-			{/if}
-
+			<h4>Application: {username}</h4>
 			<div>
 				<button class="header-h5" on:click={handleTMS}>Application</button>
 

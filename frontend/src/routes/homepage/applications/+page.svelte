@@ -4,33 +4,57 @@
 	import ApplicationList from '$lib/ApplicationList.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import axios from 'axios';
+	import { alertError, alertSuccess } from '../../../stores/errorHandle';
 
-	let showGroupModal = false;
+	let showCreateModal = false;
+	let applications = [];
+
+	const fetchapplications = async () => {
+		try {
+			const response = await axios.get('http://localhost:5000/api/users/getApps', {
+				//withCredentials: true // Ensure cookies are sent with the request
+			});
+			applications = response.data;
+
+			//convert epoch to date
+			applications.forEach((app) => {
+				app.App_startDate = new Date(app.App_startDate * 1000).toLocaleDateString();
+				app.App_endDate = new Date(app.App_endDate * 1000).toLocaleDateString();
+			});
+
+			console.log(applications);
+		} catch (error) {
+			if (error.response && error.response.status === 404) {
+				alertError('User not logged in.');
+			} else if (error.response && error.response.status === 401) {
+				alertError('Unauthorized access.');
+				redirectToLogin();
+			} else if (error.response && error.response.status === 500) {
+				alertError('Server Error. Unable to fetch users. Please try again.');
+			}
+			console.error('Error fetching users:', error);
+		}
+	};
 
 	const handleCreateApp = () => {
-		showGroupModal = true;
+		showCreateModal = true;
 	};
 	const handleCloseApp = () => {
-		showGroupModal = false;
+		showCreateModal = false;
 		appAcronym = '';
-		appRnumber = '';
+		appRNumber = '';
 		appDescription = '';
 		appStartDate = '';
 		appEndDate = '';
-		// appPermitCreate = '';
-		// appPermitOpen = '';
-		// appPermitToDo = '';
-		// appPermitDoing = '';
-		// appPermitDone = '';
-		selectedGroupPermitCreate = [];
-		selectedGroupPermitOpen = [];
-		selectedGroupPermitToDo = [];
-		selectedGroupPermitDoing = [];
-		selectedGroupPermitDone = [];
+		appPermitCreate = '';
+		appPermitOpen = '';
+		appPermitToDo = '';
+		appPermitDoing = '';
+		appPermitDone = '';
 	};
 
 	let appAcronym = '';
-	let appRnumber = '';
+	let appRNumber = '';
 	let appDescription = '';
 	let appStartDate = '';
 	let appEndDate = '';
@@ -41,16 +65,6 @@
 	let appPermitDone = '';
 
 	let availableGroups = [];
-	let selectedGroupPermitCreate = [];
-	let selectedGroupPermitOpen = [];
-	let selectedGroupPermitToDo = [];
-	let selectedGroupPermitDoing = [];
-	let selectedGroupPermitDone = [];
-	let inputGroupPermitCreate = '';
-	let inputGroupPermitOpen = '';
-	let inputGroupPermitToDo = '';
-	let inputGroupPermitDoing = '';
-	let inputGroupPermitDone = '';
 
 	// Fetch available groups from the API
 	const fetchGroups = async () => {
@@ -72,108 +86,42 @@
 		}
 	};
 
-	// Function to handle adding a group to the selected list
-	function handleAddGroup(event, field) {
-		const selectedGroup = event.target.value;
-
-		// Check if the selected group is not empty and not already in the specific selectedGroups array
-		switch (field) {
-			case 'create':
-				if (selectedGroup && !selectedGroupPermitCreate.includes(selectedGroup)) {
-					selectedGroupPermitCreate = [...selectedGroupPermitCreate, selectedGroup];
-					inputGroupPermitCreate = ''; // Clear the input after adding
-				}
-				break;
-			case 'open':
-				if (selectedGroup && !selectedGroupPermitOpen.includes(selectedGroup)) {
-					selectedGroupPermitOpen = [...selectedGroupPermitOpen, selectedGroup];
-					inputGroupPermitOpen = '';
-				}
-				break;
-			case 'todo':
-				if (selectedGroup && !selectedGroupPermitToDo.includes(selectedGroup)) {
-					selectedGroupPermitToDo = [...selectedGroupPermitToDo, selectedGroup];
-					inputGroupPermitToDo = '';
-				}
-				break;
-			case 'doing':
-				if (selectedGroup && !selectedGroupPermitDoing.includes(selectedGroup)) {
-					selectedGroupPermitDoing = [...selectedGroupPermitDoing, selectedGroup];
-					inputGroupPermitDoing = '';
-				}
-				break;
-			case 'done':
-				if (selectedGroup && !selectedGroupPermitDone.includes(selectedGroup)) {
-					selectedGroupPermitDone = [...selectedGroupPermitDone, selectedGroup];
-					inputGroupPermitDone = '';
-				}
-				break;
-			default:
-				break;
-		}
-	}
-
-	function handleRemoveGroup(group, field) {
-		// Remove the group from the specific selectedGroups array
-		switch (field) {
-			case 'create':
-				selectedGroupPermitCreate = selectedGroupPermitCreate.filter(
-					(selectedGroup) => selectedGroup !== group
-				);
-				break;
-			case 'open':
-				selectedGroupPermitOpen = selectedGroupPermitOpen.filter(
-					(selectedGroup) => selectedGroup !== group
-				);
-				break;
-			case 'todo':
-				selectedGroupPermitToDo = selectedGroupPermitToDo.filter(
-					(selectedGroup) => selectedGroup !== group
-				);
-				break;
-			case 'doing':
-				selectedGroupPermitDoing = selectedGroupPermitDoing.filter(
-					(selectedGroup) => selectedGroup !== group
-				);
-				break;
-			case 'done':
-				selectedGroupPermitDone = selectedGroupPermitDone.filter(
-					(selectedGroup) => selectedGroup !== group
-				);
-				break;
-			default:
-				break;
-		}
-	}
-
 	onMount(async () => {
 		await fetchGroups();
+		await fetchapplications();
 	});
 
 	const createApp = async () => {
-		if (!appAcronym || !appRnumber || !appStartDate || !appEndDate) {
+		if (!appAcronym || !appRNumber || !appStartDate || !appEndDate) {
 			alertError(
 				'Please fill in all required fields. (App Acronym, R Number, Start Date, End Date)'
 			);
 			return;
 		}
+
+		// convert date to epoch
+		const epochStartDate = Math.floor(new Date(appStartDate).getTime() / 1000);
+		const epochEndDate = Math.floor(new Date(appEndDate).getTime() / 1000);
+
 		try {
 			const response = await axios.post('http://localhost:5000/api/users/createApp', {
 				appAcronym,
-				appRnumber,
 				appDescription,
-				appStartDate,
-				appEndDate
-				// appPermitCreate: selectedGroupPermitCreate,
-				// appPermitOpen: selectedGroupPermitOpen,
-				// appPermitToDo: selectedGroupPermitToDo,
-				// appPermitDoing: selectedGroupPermitDoing,
-				// appPermitDone: selectedGroupPermitDone
+				appRNumber,
+				appStartDate: epochStartDate, // Ensure it's in the expected format
+				appEndDate: epochEndDate, // Ensure it's in the expected format
+				appPermitCreate,
+				appPermitOpen,
+				appPermitToDo,
+				appPermitDoing,
+				appPermitDone
+				//withCredentials: true // Send cookies with the request
 			});
 
 			if (response.status === 200) {
 				alertSuccess('Application created successfully!');
 				handleCloseApp(); // Close modal and reset form on success
+				await fetchapplications(); // Fetch updated list of applications
 			} else {
 				alertError('Error creating application. Please try again.');
 			}
@@ -183,6 +131,8 @@
 			} else if (error.response && error.response.status === 401) {
 				alertError('Unauthorized access.');
 				redirectToLogin();
+			} else if (error.response && error.response.status === 409) {
+				alertError('Application already exists. Please choose a different Acronym.');
 			} else if (error.response && error.response.status === 500) {
 				alertError('Server Error. Please try again.');
 			}
@@ -192,7 +142,6 @@
 
 	function handleSubmitApp() {
 		createApp();
-		handleCloseApp();
 	}
 </script>
 
@@ -206,7 +155,9 @@
 		</div>
 	</div>
 
-	{#if showGroupModal}
+	<!-- CREATE APP MODAL -->
+
+	{#if showCreateModal}
 		<div class="modal">
 			<div class="modal-content">
 				<h2>Create Application</h2>
@@ -215,8 +166,8 @@
 					<input id="appAcronym" type="text" bind:value={appAcronym} placeholder="Name" />
 				</div>
 				<div class="form-group">
-					<label for="appRnumber">App R-Number:</label>
-					<input id="appRnumber" type="text" bind:value={appRnumber} placeholder="Number" />
+					<label for="appRNumber">App R-Number:</label>
+					<input id="appRNumber" type="text" bind:value={appRNumber} placeholder="Number" />
 				</div>
 				<div class="form-group">
 					<label for="appDescription"
@@ -243,33 +194,12 @@
 				<div class="form-group">
 					<label for="appPermitCreate">App Permit Create:</label>
 					<div class="form-group-permit">
-						<select
-							id="appPermitCreate"
-							bind:value={inputGroupPermitCreate}
-							on:change={(e) => handleAddGroup(e, 'create')}
-						>
+						<select id="appPermitCreate" bind:value={appPermitCreate}>
 							<option value="">Group</option>
 							{#each availableGroups as group}
 								<option value={group.user_group}>{group.user_group}</option>
 							{/each}
 						</select>
-
-						{#if selectedGroupPermitCreate.length > 0}
-							<div class="scrollable-container">
-								{#each selectedGroupPermitCreate as group}
-									<div class="group-bubble2">
-										<span class="group-name">{group}</span>
-										<button
-											class="remove-icon"
-											on:click={() => handleRemoveGroup(group, 'create')}
-											aria-label={`Remove group ${group}`}
-										>
-											<span>✖</span>
-										</button>
-									</div>
-								{/each}
-							</div>
-						{/if}
 					</div>
 				</div>
 
@@ -277,33 +207,12 @@
 				<div class="form-group">
 					<label for="appPermitOpen">App Permit Open:</label>
 					<div class="form-group-permit">
-						<select
-							id="appPermitOpen"
-							bind:value={inputGroupPermitOpen}
-							on:change={(e) => handleAddGroup(e, 'open')}
-						>
+						<select id="appPermitOpen" bind:value={appPermitOpen}>
 							<option value="">Group</option>
 							{#each availableGroups as group}
 								<option value={group.user_group}>{group.user_group}</option>
 							{/each}
 						</select>
-
-						{#if selectedGroupPermitOpen.length > 0}
-							<div class="scrollable-container">
-								{#each selectedGroupPermitOpen as group}
-									<div class="group-bubble2">
-										<span class="group-name">{group}</span>
-										<button
-											class="remove-icon"
-											on:click={() => handleRemoveGroup(group, 'open')}
-											aria-label={`Remove group ${group}`}
-										>
-											<span>✖</span>
-										</button>
-									</div>
-								{/each}
-							</div>
-						{/if}
 					</div>
 				</div>
 
@@ -311,33 +220,12 @@
 				<div class="form-group">
 					<label for="appPermitToDo">App Permit ToDo:</label>
 					<div class="form-group-permit">
-						<select
-							id="appPermitToDo"
-							bind:value={inputGroupPermitToDo}
-							on:change={(e) => handleAddGroup(e, 'todo')}
-						>
+						<select id="appPermitToDo" bind:value={appPermitToDo}>
 							<option value="">Group</option>
 							{#each availableGroups as group}
 								<option value={group.user_group}>{group.user_group}</option>
 							{/each}
 						</select>
-
-						{#if selectedGroupPermitToDo.length > 0}
-							<div class="scrollable-container">
-								{#each selectedGroupPermitToDo as group}
-									<div class="group-bubble2">
-										<span class="group-name">{group}</span>
-										<button
-											class="remove-icon"
-											on:click={() => handleRemoveGroup(group, 'todo')}
-											aria-label={`Remove group ${group}`}
-										>
-											<span>✖</span>
-										</button>
-									</div>
-								{/each}
-							</div>
-						{/if}
 					</div>
 				</div>
 
@@ -345,33 +233,12 @@
 				<div class="form-group">
 					<label for="appPermitDoing">App Permit Doing:</label>
 					<div class="form-group-permit">
-						<select
-							id="appPermitDoing"
-							bind:value={inputGroupPermitDoing}
-							on:change={(e) => handleAddGroup(e, 'doing')}
-						>
+						<select id="appPermitDoing" bind:value={appPermitDoing}>
 							<option value="">Group</option>
 							{#each availableGroups as group}
 								<option value={group.user_group}>{group.user_group}</option>
 							{/each}
 						</select>
-
-						{#if selectedGroupPermitDoing.length > 0}
-							<div class="scrollable-container">
-								{#each selectedGroupPermitDoing as group}
-									<div class="group-bubble2">
-										<span class="group-name">{group}</span>
-										<button
-											class="remove-icon"
-											on:click={() => handleRemoveGroup(group, 'doing')}
-											aria-label={`Remove group ${group}`}
-										>
-											<span>✖</span>
-										</button>
-									</div>
-								{/each}
-							</div>
-						{/if}
 					</div>
 				</div>
 
@@ -379,45 +246,24 @@
 				<div class="form-group">
 					<label for="appPermitDone">App Permit Done:</label>
 					<div class="form-group-permit">
-						<select
-							id="appPermitDone"
-							bind:value={inputGroupPermitDone}
-							on:change={(e) => handleAddGroup(e, 'done')}
-						>
+						<select id="appPermitDone" bind:value={appPermitDone}>
 							<option value="">Group</option>
 							{#each availableGroups as group}
 								<option value={group.user_group}>{group.user_group}</option>
 							{/each}
 						</select>
-
-						{#if selectedGroupPermitDone.length > 0}
-							<div class="scrollable-container">
-								{#each selectedGroupPermitDone as group}
-									<div class="group-bubble2">
-										<span class="group-name">{group}</span>
-										<button
-											class="remove-icon"
-											on:click={() => handleRemoveGroup(group, 'done')}
-											aria-label={`Remove group ${group}`}
-										>
-											<span>✖</span>
-										</button>
-									</div>
-								{/each}
-							</div>
-						{/if}
 					</div>
 				</div>
 
 				<div class="modal-actions">
-					<button on:click={handleSubmitApp}>Create</button>
+					<button on:click={handleSubmitApp}>Create Application</button>
 					<button on:click={handleCloseApp}>Cancel</button>
 				</div>
 			</div>
 		</div>
 	{/if}
 
-	<ApplicationList />
+	<ApplicationList {availableGroups} {applications} {fetchapplications} />
 </body>
 
 <style>
@@ -527,39 +373,6 @@
 
 	.modal-actions button {
 		margin: 0 0.5em;
-	}
-
-	.group-bubble2 {
-		background-color: #e1e9f6; /* Light gray background */
-		border-radius: 12px; /* Rounded edges */
-		padding: 0.5rem 1rem; /* Padding inside the bubble */
-		font-size: 12px; /* Adjust the text size */
-		margin-top: 0.3rem;
-		margin-right: 0.2rem;
-		color: #000; /* Text color */
-		border: #e1e9f6;
-	}
-
-	.remove-icon {
-		background-color: #e1e9f6;
-		color: #000; /* Text color */
-		cursor: pointer;
-		border: #e1e9f6;
-	}
-
-	.remove-icon:hover {
-		border: red;
-		color: red; /* Text color */
-		cursor: pointer;
-		background-color: #e1e9f6;
-	}
-
-	.scrollable-container {
-		max-height: 150px; /* Adjust based on your design */
-		overflow-y: auto; /* Adds vertical scroll */
-		border: 1px solid #ccc;
-		padding: 8px;
-		border-radius: 4px;
 	}
 
 	.char-limit {
