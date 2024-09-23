@@ -70,10 +70,10 @@
 
 	let showCreateModal = false;
 	let acronym = '';
-	let appRNumber = '';
-	let appDescription = '';
-	let appStartDate = '';
-	let appEndDate = '';
+	let planName = '';
+	let planStartDate = '';
+	let planEndDate = '';
+	let planColor = '';
 </script>
 
 <body style="margin:0;padding:0">
@@ -90,7 +90,6 @@
 		<p>No application details found or loading...</p>
 	{/if}
 
-	<!-- EDIT THE FEILDS HEREEEE -->
 	{#if showCreateModal}
 		<div class="modal">
 			<div class="modal-content">
@@ -100,22 +99,22 @@
 					<h7 id="appAcronym">{appAcronym}</h7>
 				</div>
 				<div class="form-group">
-					<label for="appRNumber">Plan Name:</label>
-					<input id="appRNumber" type="text" bind:value={appRNumber} placeholder="Name" />
+					<label for="planName">Plan Name:</label>
+					<input id="planName" type="text" bind:value={planName} placeholder="Name" />
 				</div>
 				<div class="form-group">
-					<label for="appStartDate">Start Date:</label>
-					<input id="appStartDate" type="date" bind:value={appStartDate} placeholder="DD/MM/YY" />
+					<label for="planStartDate">Start Date:</label>
+					<input id="planStartDate" type="date" bind:value={planStartDate} placeholder="DD/MM/YY" />
 				</div>
 				<div class="form-group">
-					<label for="appEndDate">End Date:</label>
-					<input id="appEndDate" type="date" bind:value={appEndDate} placeholder="DD/MM/YY" />
+					<label for="planEndDate">End Date:</label>
+					<input id="planEndDate" type="date" bind:value={planEndDate} placeholder="DD/MM/YY" />
 				</div>
 				<!-- app permit done -->
 				<div class="form-group">
-					<label for="appPermitDone">Color:</label>
+					<label for="planColor">Color:</label>
 					<div class="form-group-permit">
-						<select id="appPermitDone" bind:value={appDescription}>
+						<select id="planColor" bind:value={planColor}>
 							<option value="">Color</option>
 							<!-- {#each availableGroups as group} -->
 							<!-- <option value={group.user_group}>{group.user_group}</option>
@@ -230,16 +229,6 @@
 		flex: 2;
 	}
 
-	.inputdescription {
-		width: 100%;
-		height: 100px;
-		padding: 0.5em;
-		border: 1px solid #ccc;
-		border-radius: 4px;
-		background-color: #c9c9c9;
-		flex: 2;
-	}
-
 	.modal-actions {
 		margin-top: 1em;
 		text-align: center;
@@ -247,12 +236,5 @@
 
 	.modal-actions button {
 		margin: 0 0.5em;
-	}
-
-	.char-limit {
-		display: block;
-		margin-top: 5px; /* Adjust the margin to position it closer to the textarea */
-		font-size: 12px; /* Make the text smaller if needed */
-		color: #888; /* Optional: change the color to a subtle grey */
 	}
 </style>
