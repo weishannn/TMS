@@ -94,7 +94,7 @@
 	{#if showCreateModal}
 		<div class="modal">
 			<div class="modal-content">
-				<h2>Create Application</h2>
+				<h2>Create Plan</h2>
 				<div class="form-group">
 					<label for="appAcronym">App Acronym:</label>
 					<h7 id="appAcronym">{appAcronym}</h7>
