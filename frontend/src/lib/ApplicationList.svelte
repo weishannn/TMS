@@ -5,6 +5,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { alertError, alertSuccess } from '../stores/errorHandle';
+	import { createEventDispatcher } from 'svelte';
 
 	export let applications = [];
 	export let availableGroups = [];
@@ -123,8 +124,9 @@
 		editApp();
 	}
 
-	function handleViewApp(appAcronym) {
-		goto(`/homepage/applications/${appAcronym}`);
+	const dispatch = createEventDispatcher();
+	function handleViewApp(app) {
+		dispatch('selectApp', app);
 	}
 </script>
 
@@ -134,8 +136,7 @@
 			<div class="app-card-wrapper">
 				<button
 					class="app-card"
-					on:click={() => handleViewApp(app.App_Acronym)}
-					on:keydown={(event) => event.key === 'Enter' && handleViewApp(app.App_Acronym)}
+					on:click={() => handleViewApp(app)}
 					aria-label={`View application: ${app.App_Acronym}`}
 				>
 					<h3>App Acronym: <span>{app.App_Acronym}</span></h3>
@@ -184,9 +185,7 @@
 					<h7 id="appRNumber">{appRNumber}</h7>
 				</div>
 				<div class="form-group">
-					<label for="appDescription"
-						>App Description: <span class="char-limit">(max 250 characters)</span></label
-					>
+					<label for="appDescription">App Description: </label>
 					<textarea
 						class="inputdescription"
 						id="appDescription"
@@ -312,7 +311,6 @@
 
 	.app-card-wrapper {
 		width: calc(50% - 20px); /* Control width here for 2 per row */
-
 		display: flex;
 		flex-direction: column;
 	}
@@ -432,12 +430,5 @@
 
 	.modal-actions button {
 		margin: 0 0.5em;
-	}
-
-	.char-limit {
-		display: block;
-		margin-top: 5px; /* Adjust the margin to position it closer to the textarea */
-		font-size: 12px; /* Make the text smaller if needed */
-		color: #888; /* Optional: change the color to a subtle grey */
 	}
 </style>

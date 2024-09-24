@@ -1,67 +1,26 @@
 <script>
 	//@ts-nocheck
 	import axios from 'axios';
-	import { alertError, alertSuccess } from '../../../../stores/errorHandle';
+	import { alertError, alertSuccess } from '../../src/stores/errorHandle';
 	import HomePageNav from '$lib/HomePage-NAV.svelte';
 	import TaskList from '$lib/TaskList.svelte';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
 
-	export let data;
-	const { appAcronym } = data;
+	export let selectedAppDetails;
+	export let inTMS;
 
-	let appDetails;
-	let inTMS = false;
-	let name = '';
+	let appAcronym = selectedAppDetails.App_Acronym;
+
+	console.log('selectedApp in tms', selectedAppDetails);
+	console.log('inTMS', inTMS);
+	console.log('appAcronym', appAcronym);
 
 	// Redirect to login page
 	const redirectToLogin = () => {
 		goto('/login');
 	};
-
-	console.log('AppAcronym prop:', appAcronym); // Log to check the received appAcronym
-
-	const fetchspecificapplications = async () => {
-		console.log('appAcronym', appAcronym); // Log the appAcronym being fetched
-
-		try {
-			const response = await axios.get(`http://localhost:5000/api/users/${appAcronym}`, {
-				// withCredentials: true
-			});
-
-			const appDetailsArray = response.data; // Store the fetched application data
-
-			// Check if the array is not empty and access the first item
-			if (appDetailsArray.length > 0) {
-				const appDetails = appDetailsArray[0]; // Get the first object in the array
-				console.log('Application details:', appDetails.App_Acronym); // Access App_Acronym from the first object
-				inTMS = true;
-				name = appDetails.App_Acronym;
-			} else {
-				console.error('No application found in the response:', appDetailsArray);
-			}
-		} catch (error) {
-			if (error.response) {
-				// Check for specific error responses
-				if (error.response.status === 404) {
-					alertError('Application not found.');
-				} else if (error.response.status === 401) {
-					alertError('Unauthorized access.');
-					goto('/login'); // Redirect to login if unauthorized
-				} else if (error.response.status === 500) {
-					alertError('Server Error. Unable to fetch applications. Please try again.');
-				}
-			} else {
-				// Handle errors that are not related to the response
-				alertError('An unexpected error occurred. Please try again.');
-			}
-			console.error('Error fetching applications:', error);
-		}
-	};
-
-	onMount(() => {
-		fetchspecificapplications();
-	});
 
 	function handleCreatePlan() {
 		showCreateModal = true;
@@ -119,7 +78,7 @@
 </script>
 
 <body style="margin:0;padding:0">
-	<HomePageNav {inTMS} {name} />
+	<HomePageNav {inTMS} {appAcronym} />
 
 	{#if inTMS}
 		<div class="container">
@@ -173,7 +132,7 @@
 		</div>
 	{/if}
 
-	<TaskList />
+	<TaskList {selectedAppDetails} />
 </body>
 
 <style>

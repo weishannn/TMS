@@ -191,3 +191,141 @@ exports.editApp = catchAsyncErrors(async (req, res) => {
 });
 
 //PLAN >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+//create plan
+exports.createPlan = catchAsyncErrors(async (req, res) => {
+  const { planName, planappAcronym, planStartDate, planEndDate, planColor } =
+    req.body;
+
+  if (
+    !planName ||
+    !planappAcronym ||
+    !planStartDate ||
+    !planEndDate ||
+    !planColor
+  ) {
+    return res.status(400).json({
+      error:
+        "Missing fields. Plan Name, App Acronym, Start Date, End Date, and Color are required.",
+    });
+  }
+
+  db.query(
+    "SELECT * FROM plan WHERE Plan_MVP_name = ?",
+    [planName],
+    (err, results) => {
+      if (err) {
+        console.error("Error during application check:", err);
+        return res.status(500).json({ error: err.message });
+      }
+
+      if (results.length > 0) {
+        return res.status(409).json({
+          error: "Plan already exists. Please choose a different plan name.",
+        });
+      }
+
+      try {
+        db.query(
+          "INSERT INTO plan (Plan_MVP_name, Plan_app_Acronym, Plan_startDate, Plan_endDate, Plan_color) VALUES (?, ?, ?, ?, ?)",
+          [planName, planappAcronym, planStartDate, planEndDate, planColor],
+          (err, result) => {
+            if (err) {
+              if (err.code === "ER_DUP_ENTRY") {
+                return res.status(409).json({
+                  error:
+                    "Plan already exists. Please choose a different plan name.",
+                });
+              } else {
+                console.error("Error during creation:", err);
+                return res.status(500).json({ error: err.message });
+              }
+            }
+            res.json({ message: "Plan created successful" });
+          }
+        );
+      } catch (error) {
+        console.error("Error during plan creation:", error);
+        return res.status(500).json({ error: error.message });
+      }
+    }
+  );
+});
+
+//TASK >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+//create task
+exports.createTask = catchAsyncErrors(async (req, res) => {
+  const {
+    taskId,
+    taskPlan,
+    taskappAcronym,
+    taskName,
+    taskDescription,
+    taskNotes,
+    taskState,
+    taskCreator,
+    taskOwner,
+    taskcreateDate,
+  } = req.body;
+
+  // Validate required fields
+  if (
+    !taskId ||
+    !taskappAcronym ||
+    !taskName ||
+    !taskState ||
+    !taskCreator ||
+    !taskOwner ||
+    !taskcreateDate
+  ) {
+    return res.status(400).json({
+      error:
+        "Missing fields. Task ID, App Acronym, Name, State, Creator, Owner, and Create Date are required.",
+    });
+  }
+
+  // Check if task already exists
+  db.query("SELECT * FROM task WHERE Task_id = ?", [taskId], (err, results) => {
+    if (err) {
+      console.error("Error during application check:", err);
+      return res.status(500).json({ error: err.message });
+    }
+
+    if (results.length > 0) {
+      return res.status(409).json({
+        error: "Task already exists. Please choose a different task ID.",
+      });
+    }
+
+    // If the task does not exist, insert the new task
+    db.query(
+      "INSERT INTO task (Task_id, Task_plan, Task_app_Acronym, Task_name, Task_description, Task_notes, Task_state, Task_creator, Task_owner, Task_createDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        taskId,
+        taskPlan,
+        taskappAcronym,
+        taskName,
+        taskDescription,
+        taskNotes,
+        taskState,
+        taskCreator,
+        taskOwner,
+        taskcreateDate,
+      ],
+      (error, result) => {
+        if (error) {
+          console.error("Error during task insertion:", error);
+          if (error.code === "ER_DUP_ENTRY") {
+            return res.status(409).json({
+              error:
+                "Task already exists. Please choose a different task name.",
+            });
+          }
+          return res.status(500).json({ error: error.message });
+        }
+        return res.json({
+          message: "Task created successfully",
+        });
+      }
+    );
+  });
+});

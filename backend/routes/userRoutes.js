@@ -93,14 +93,20 @@ router.delete(
 );
 
 // task controller
+//application
 router.post(
   "/createApp",
   // authenticateToken("active"),
   taskController.createApp
 );
-
-router.get("/getApps", taskController.getApps);
-router.get("/:appAcronym", taskController.getAppByAcronym);
+router.get("/getApps", taskController.getApps); //get all applications
+router.get("/:appAcronym", taskController.getAppByAcronym); //get 1 application
 router.put("/editApp", taskController.editApp);
+
+//plan
+router.post("/createPlan", taskController.createPlan);
+
+//task
+router.post("/createTask", taskController.createTask);
 
 module.exports = router;

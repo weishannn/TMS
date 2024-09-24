@@ -2,6 +2,8 @@
 	// @ts-nocheck
 	import HomePageNAV from '$lib/HomePage-NAV.svelte';
 	import ApplicationList from '$lib/ApplicationList.svelte';
+	import TMS from '$lib/TMS.svelte';
+	import { goto } from '$app/navigation';
 	import { onMount, onDestroy } from 'svelte';
 	import axios from 'axios';
 	import { alertError, alertSuccess } from '../../../stores/errorHandle';
@@ -66,6 +68,10 @@
 
 	let availableGroups = [];
 
+	// Redirect to login page
+	const redirectToLogin = () => {
+		goto('/login');
+	};
 	// Fetch available groups from the API
 	const fetchGroups = async () => {
 		try {
@@ -143,17 +149,38 @@
 	function handleSubmitApp() {
 		createApp();
 	}
+
+	let inTMS = false;
+	let selectedAppDetails = null;
+
+	//function to handle app selection
+	function handleAppSelect(event) {
+		selectedAppDetails = event.detail;
+		console.log('accessing page selectedAppDetails', selectedAppDetails);
+		inTMS = true;
+	}
 </script>
 
 <body style="margin:0;padding:0">
-	<HomePageNAV />
-
-	<div class="container">
-		<div class="content">
-			<h1>Applications</h1>
-			<button on:click={handleCreateApp}>+ CREATE APP</button>
+	{#if inTMS}
+		<!-- Show the TMS component if an app is selected -->
+		<TMS {selectedAppDetails} {inTMS} />
+	{:else}
+		<HomePageNAV />
+		<div class="container">
+			<div class="content">
+				<h1>Applications</h1>
+				<button on:click={handleCreateApp}>+ CREATE APP</button>
+			</div>
 		</div>
-	</div>
+		<!-- Show the ApplicationList only when TMS is not being viewed -->
+		<ApplicationList
+			{availableGroups}
+			{applications}
+			{fetchapplications}
+			on:selectApp={handleAppSelect}
+		/>
+	{/if}
 
 	<!-- CREATE APP MODAL -->
 
@@ -167,12 +194,10 @@
 				</div>
 				<div class="form-group">
 					<label for="appRNumber">App R-Number:</label>
-					<input id="appRNumber" type="text" bind:value={appRNumber} placeholder="Number" />
+					<input id="appRNumber" type="number" bind:value={appRNumber} placeholder="Number" />
 				</div>
 				<div class="form-group">
-					<label for="appDescription"
-						>App Description: <span class="char-limit">(max 250 characters)</span></label
-					>
+					<label for="appDescription">App Description: </label>
 					<textarea
 						class="inputdescription"
 						id="appDescription"
@@ -262,8 +287,6 @@
 			</div>
 		</div>
 	{/if}
-
-	<ApplicationList {availableGroups} {applications} {fetchapplications} />
 </body>
 
 <style>
@@ -373,12 +396,5 @@
 
 	.modal-actions button {
 		margin: 0 0.5em;
-	}
-
-	.char-limit {
-		display: block;
-		margin-top: 5px; /* Adjust the margin to position it closer to the textarea */
-		font-size: 12px; /* Make the text smaller if needed */
-		color: #888; /* Optional: change the color to a subtle grey */
 	}
 </style>
