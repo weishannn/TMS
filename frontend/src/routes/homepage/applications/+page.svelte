@@ -10,6 +10,26 @@
 
 	let showCreateModal = false;
 	let applications = [];
+	let username = '';
+
+	// Fetch the current user
+	const fetchCurrentUser = async () => {
+		try {
+			const response = await axios.get('http://localhost:5000/api/users/currentUser', {
+				withCredentials: true // Ensure cookies are sent with the request
+			});
+			username = response.data.username;
+		} catch (error) {
+			if (error.response && error.response.status === 404) {
+				alertError('User not logged in.');
+				redirectToLogin();
+			} else if (error.response && error.response.status === 500) {
+				console.error('Error fetching current user:', error);
+				alertError('Server Error. Please try again.');
+				redirectToLogin();
+			}
+		}
+	};
 
 	const fetchapplications = async () => {
 		try {
@@ -95,6 +115,7 @@
 	onMount(async () => {
 		await fetchGroups();
 		await fetchapplications();
+		await fetchCurrentUser();
 	});
 
 	const createApp = async () => {
@@ -164,7 +185,7 @@
 <body style="margin:0;padding:0">
 	{#if inTMS}
 		<!-- Show the TMS component if an app is selected -->
-		<TMS {selectedAppDetails} {inTMS} />
+		<TMS {selectedAppDetails} {inTMS} {username} />
 	{:else}
 		<HomePageNAV />
 		<div class="container">
@@ -337,6 +358,7 @@
 		align-items: center;
 		justify-content: center;
 		z-index: 1000;
+		overflow-y: auto;
 	}
 
 	.modal-content {

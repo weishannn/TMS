@@ -40,4 +40,4 @@ pool.getConnection((err, connection) => {
   // });
 });
 
-module.exports = pool;
+module.exports = pool.promise();

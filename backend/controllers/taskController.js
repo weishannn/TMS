@@ -251,9 +251,25 @@ exports.createPlan = catchAsyncErrors(async (req, res) => {
   );
 });
 
+//GET >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+// Get all plans
+exports.getPlans = catchAsyncErrors(async (req, res) => {
+  const { planappAcronym } = req.body;
+
+  const plansQuery = "SELECT * FROM plan WHERE Plan_app_Acronym = ?"; // Query to get applications from application table
+
+  db.query(plansQuery, [planappAcronym], (err, result) => {
+    if (err) {
+      console.error("Error during plans retrieval:", err);
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(result);
+  });
+});
+
 //TASK >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 //create task
-exports.createTask = catchAsyncErrors(async (req, res) => {
+exports.createTask = catchAsyncErrors((req, res) => {
   const {
     taskId,
     taskPlan,
@@ -283,49 +299,116 @@ exports.createTask = catchAsyncErrors(async (req, res) => {
     });
   }
 
-  // Check if task already exists
-  db.query("SELECT * FROM task WHERE Task_id = ?", [taskId], (err, results) => {
+  // Start the transaction
+  db.query("BEGIN", (err) => {
     if (err) {
-      console.error("Error during application check:", err);
+      console.error("Error starting transaction:", err);
       return res.status(500).json({ error: err.message });
     }
 
-    if (results.length > 0) {
-      return res.status(409).json({
-        error: "Task already exists. Please choose a different task ID.",
-      });
-    }
-
-    // If the task does not exist, insert the new task
+    // Check if the task already exists
     db.query(
-      "INSERT INTO task (Task_id, Task_plan, Task_app_Acronym, Task_name, Task_description, Task_notes, Task_state, Task_creator, Task_owner, Task_createDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      [
-        taskId,
-        taskPlan,
-        taskappAcronym,
-        taskName,
-        taskDescription,
-        taskNotes,
-        taskState,
-        taskCreator,
-        taskOwner,
-        taskcreateDate,
-      ],
-      (error, result) => {
-        if (error) {
-          console.error("Error during task insertion:", error);
-          if (error.code === "ER_DUP_ENTRY") {
-            return res.status(409).json({
-              error:
-                "Task already exists. Please choose a different task name.",
-            });
-          }
-          return res.status(500).json({ error: error.message });
+      "SELECT * FROM task WHERE Task_id = ?",
+      [taskId],
+      (err, results) => {
+        if (err) {
+          console.error("Error during task check:", err);
+          return db.query("ROLLBACK", (rollbackErr) => {
+            if (rollbackErr)
+              console.error("Error rolling back transaction:", rollbackErr);
+            return res.status(500).json({ error: err.message });
+          });
         }
-        return res.json({
-          message: "Task created successfully",
-        });
+
+        if (results.length > 0) {
+          return db.query("ROLLBACK", (rollbackErr) => {
+            if (rollbackErr)
+              console.error("Error rolling back transaction:", rollbackErr);
+            return res.status(409).json({
+              error: "Error...TaskID already exists.",
+            });
+          });
+        }
+
+        // Insert the new task
+        db.query(
+          "INSERT INTO task (Task_id, Task_plan, Task_app_Acronym, Task_name, Task_description, Task_notes, Task_state, Task_creator, Task_owner, Task_createDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [
+            taskId,
+            taskPlan,
+            taskappAcronym,
+            taskName,
+            taskDescription,
+            taskNotes,
+            taskState,
+            taskCreator,
+            taskOwner,
+            taskcreateDate,
+          ],
+          (insertErr) => {
+            if (insertErr) {
+              console.error("Error during task insertion:", insertErr);
+              return db.query("ROLLBACK", (rollbackErr) => {
+                if (rollbackErr)
+                  console.error("Error rolling back transaction:", rollbackErr);
+                return res.status(500).json({ error: insertErr.message });
+              });
+            }
+
+            // Update the App_Rnumber
+            db.query(
+              "UPDATE application SET App_Rnumber = App_Rnumber + 1 WHERE App_Acronym = ?",
+              [taskappAcronym],
+              (updateErr) => {
+                if (updateErr) {
+                  console.error("Error during App_Rnumber update:", updateErr);
+                  return db.query("ROLLBACK", (rollbackErr) => {
+                    if (rollbackErr)
+                      console.error(
+                        "Error rolling back transaction:",
+                        rollbackErr
+                      );
+                    return res.status(500).json({ error: updateErr.message });
+                  });
+                }
+
+                // Commit the transaction
+                db.query("COMMIT", (commitErr) => {
+                  if (commitErr) {
+                    console.error("Error committing transaction:", commitErr);
+                    return db.query("ROLLBACK", (rollbackErr) => {
+                      if (rollbackErr)
+                        console.error(
+                          "Error rolling back transaction:",
+                          rollbackErr
+                        );
+                      return res.status(500).json({ error: commitErr.message });
+                    });
+                  }
+
+                  return res.json({
+                    message: "Task created successfully",
+                  });
+                });
+              }
+            );
+          }
+        );
       }
     );
+  });
+});
+
+//GET >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+// Get all tasks
+exports.getTasks = catchAsyncErrors(async (req, res) => {
+  const { taskappAcronym } = req.body;
+  const tasksQuery = "SELECT * FROM task WHERE Task_app_Acronym = ?"; // Query to get tasks from task table
+  db.query(tasksQuery, [taskappAcronym], (err, result) => {
+    if (err) {
+      console.error("Error during task retrieval:", err);
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(result);
   });
 });

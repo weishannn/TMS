@@ -10,6 +10,7 @@
 
 	export let selectedAppDetails;
 	export let inTMS;
+	export let username;
 
 	let appAcronym = selectedAppDetails.App_Acronym;
 
@@ -67,6 +68,10 @@
 
 	function handleClosePlan() {
 		showCreateModal = false;
+		planName = '';
+		planStartDate = '';
+		planEndDate = '';
+		planColor = '';
 	}
 
 	let showCreateModal = false;
@@ -74,7 +79,7 @@
 	let planName = '';
 	let planStartDate = '';
 	let planEndDate = '';
-	let planColor = '#000000';
+	let planColor = '';
 </script>
 
 <body style="margin:0;padding:0">
@@ -111,17 +116,9 @@
 					<label for="planEndDate">End Date:</label>
 					<input id="planEndDate" type="date" bind:value={planEndDate} placeholder="DD/MM/YY" />
 				</div>
-				<!-- app permit done -->
 				<div class="form-group">
 					<label for="planColor">Color:</label>
-					<div class="form-group-permit">
-						<select id="planColor" bind:value={planColor}>
-							<option value="">Color</option>
-							<!-- {#each availableGroups as group} -->
-							<!-- <option value={group.user_group}>{group.user_group}</option>
-							{/each} -->
-						</select>
-					</div>
+					<input class="color" type="color" bind:value={planColor} />
 				</div>
 
 				<div class="modal-actions">
@@ -132,7 +129,7 @@
 		</div>
 	{/if}
 
-	<TaskList {selectedAppDetails} />
+	<TaskList {selectedAppDetails} {username} />
 </body>
 
 <style>
@@ -216,11 +213,12 @@
 		font-weight: bold;
 	}
 
-	.form-group-permit {
-		flex: 2;
+	.color {
+		width: 100%;
+		height: 50px;
+		background-color: #fff;
 	}
 
-	.form-group-permit select,
 	.form-group input {
 		width: 100%;
 		padding: 0.5em;
