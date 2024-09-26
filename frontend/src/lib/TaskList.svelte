@@ -120,7 +120,7 @@
 			taskPlan = null;
 		}
 		if (taskNotes) {
-			// Get the current date
+			// Get the current date and time
 			const now = new Date();
 
 			// Format the date to DD/MM/YYYY
@@ -128,11 +128,16 @@
 			const month = String(now.getMonth() + 1).padStart(2, '0'); // Get month (0-indexed) and pad
 			const year = now.getFullYear(); // Get full year
 
-			// Construct the formatted date
+			// Format the time to HH:MM (24-hour format)
+			const hours = String(now.getHours()).padStart(2, '0'); // Get hours and pad
+			const minutes = String(now.getMinutes()).padStart(2, '0'); // Get minutes and pad
+
+			// Construct the formatted date and time
 			const formattedDate = `${day}/${month}/${year}`;
+			const formattedTime = `${hours}:${minutes}`;
 
 			// Append to taskNotes
-			taskNotes = `Commented By: ${username} \nDated On: ${formattedDate} \n${taskNotes}\n`;
+			taskNotes = `Commented by: ${username} \nDated on: ${formattedDate} ${formattedTime} \n${taskNotes}\n`;
 		}
 
 		//convert data to epoch
@@ -211,9 +216,9 @@
 
 		// Format task comments
 		if (task.Task_notes) {
-			taskComments = task.Task_notes.split(/(?=Commented By: )/) // Split at each "Commented By"
+			taskComments = task.Task_notes.split(/(?=Commented by: )/) // Split at each "Commented By"
 				.map((comment) => comment.trim()) // Trim each comment block
-				.map((comment) => comment.replace(/(Dated On: \d{2}\/\d{2}\/\d{4})/, '\n$1')) // Ensure "Dated On" has a line break before it
+				.map((comment) => comment.replace(/(Dated on: \d{2}\/\d{2}\/\d{4})/, '\n$1')) // Ensure "Dated On" has a line break before it
 				.map((comment) => comment.replace(/\n{2,}/g, '\n')) // Remove extra newlines within each comment
 				.join('\n\n'); // Join each comment block with a double newline
 		} else {
@@ -226,6 +231,248 @@
 	async function handleReleaseTask() {
 		// Set the task state to 'Todo'
 		edittaskState = 'Todo';
+
+		// Get the current date and time
+		const now = new Date();
+
+		// Format the date to DD/MM/YYYY
+		const day = String(now.getDate()).padStart(2, '0');
+		const month = String(now.getMonth() + 1).padStart(2, '0');
+		const year = now.getFullYear();
+
+		// Format the time to HH:MM
+		const hours = String(now.getHours()).padStart(2, '0');
+		const minutes = String(now.getMinutes()).padStart(2, '0');
+
+		// Construct the formatted date and time
+		const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
+
+		// Prepare the promotion note
+		const promotionNote = `Promoted by: ${username} Dated on: ${formattedDateTime}`;
+
+		// Check if there are existing task notes
+		if (taskNotes && taskNotes.trim() !== '') {
+			// Append to existing task notes
+			taskNotes = `${taskNotes}\n${promotionNote}`;
+		} else {
+			// If no existing notes, set taskNotes to the promotion note
+			taskNotes = promotionNote;
+		}
+
+		try {
+			// Await the updateTask function to ensure it's completed before proceeding
+			await updateTask();
+
+			// Close the edit modal after updating
+			showEditModal = false;
+		} catch (error) {
+			console.error('Error releasing task:', error);
+			// Optionally, handle the error here (e.g., show an alert or message)
+		}
+	}
+
+	async function handleTakeOnTask() {
+		// Set the task state to 'Todo'
+		edittaskState = 'Doing';
+
+		// Get the current date and time
+		const now = new Date();
+
+		// Format the date to DD/MM/YYYY
+		const day = String(now.getDate()).padStart(2, '0');
+		const month = String(now.getMonth() + 1).padStart(2, '0');
+		const year = now.getFullYear();
+
+		// Format the time to HH:MM
+		const hours = String(now.getHours()).padStart(2, '0');
+		const minutes = String(now.getMinutes()).padStart(2, '0');
+
+		// Construct the formatted date and time
+		const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
+
+		// Prepare the promotion note
+		const promotionNote = `Promoted by: ${username} Dated on: ${formattedDateTime}`;
+
+		// Check if there are existing task notes
+		if (taskNotes && taskNotes.trim() !== '') {
+			// Append to existing task notes
+			taskNotes = `${taskNotes}\n${promotionNote}`;
+		} else {
+			// If no existing notes, set taskNotes to the promotion note
+			taskNotes = promotionNote;
+		}
+
+		try {
+			// Await the updateTask function to ensure it's completed before proceeding
+			await updateTask();
+
+			// Close the edit modal after updating
+			showEditModal = false;
+		} catch (error) {
+			console.error('Error releasing task:', error);
+			// Optionally, handle the error here (e.g., show an alert or message)
+		}
+	}
+
+	async function handleToReviewTask() {
+		// Set the task state to 'Todo'
+		edittaskState = 'Done';
+
+		// Get the current date and time
+		const now = new Date();
+
+		// Format the date to DD/MM/YYYY
+		const day = String(now.getDate()).padStart(2, '0');
+		const month = String(now.getMonth() + 1).padStart(2, '0');
+		const year = now.getFullYear();
+
+		// Format the time to HH:MM
+		const hours = String(now.getHours()).padStart(2, '0');
+		const minutes = String(now.getMinutes()).padStart(2, '0');
+
+		// Construct the formatted date and time
+		const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
+
+		// Prepare the promotion note
+		const promotionNote = `Promoted by: ${username} Dated on: ${formattedDateTime}`;
+
+		// Check if there are existing task notes
+		if (taskNotes && taskNotes.trim() !== '') {
+			// Append to existing task notes
+			taskNotes = `${taskNotes}\n${promotionNote}`;
+		} else {
+			// If no existing notes, set taskNotes to the promotion note
+			taskNotes = promotionNote;
+		}
+
+		try {
+			// Await the updateTask function to ensure it's completed before proceeding
+			await updateTask();
+
+			// Close the edit modal after updating
+			showEditModal = false;
+		} catch (error) {
+			console.error('Error releasing task:', error);
+			// Optionally, handle the error here (e.g., show an alert or message)
+		}
+	}
+
+	async function handleForfeitTask() {
+		// Set the task state to 'Todo'
+		edittaskState = 'Todo';
+
+		// Get the current date and time
+		const now = new Date();
+
+		// Format the date to DD/MM/YYYY
+		const day = String(now.getDate()).padStart(2, '0');
+		const month = String(now.getMonth() + 1).padStart(2, '0');
+		const year = now.getFullYear();
+
+		// Format the time to HH:MM
+		const hours = String(now.getHours()).padStart(2, '0');
+		const minutes = String(now.getMinutes()).padStart(2, '0');
+
+		// Construct the formatted date and time
+		const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
+
+		// Prepare the promotion note
+		const promotionNote = `Forfeited by: ${username} Dated on: ${formattedDateTime}`;
+
+		// Check if there are existing task notes
+		if (taskNotes && taskNotes.trim() !== '') {
+			// Append to existing task notes
+			taskNotes = `${taskNotes}\n${promotionNote}`;
+		} else {
+			// If no existing notes, set taskNotes to the promotion note
+			taskNotes = promotionNote;
+		}
+
+		try {
+			// Await the updateTask function to ensure it's completed before proceeding
+			await updateTask();
+
+			// Close the edit modal after updating
+			showEditModal = false;
+		} catch (error) {
+			console.error('Error releasing task:', error);
+			// Optionally, handle the error here (e.g., show an alert or message)
+		}
+	}
+
+	async function handleApproveTask() {
+		// Set the task state to 'Todo'
+		edittaskState = 'Closed';
+
+		// Get the current date and time
+		const now = new Date();
+
+		// Format the date to DD/MM/YYYY
+		const day = String(now.getDate()).padStart(2, '0');
+		const month = String(now.getMonth() + 1).padStart(2, '0');
+		const year = now.getFullYear();
+
+		// Format the time to HH:MM
+		const hours = String(now.getHours()).padStart(2, '0');
+		const minutes = String(now.getMinutes()).padStart(2, '0');
+
+		// Construct the formatted date and time
+		const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
+
+		// Prepare the promotion note
+		const promotionNote = `Promoted by: ${username} Dated on: ${formattedDateTime}`;
+
+		// Check if there are existing task notes
+		if (taskNotes && taskNotes.trim() !== '') {
+			// Append to existing task notes
+			taskNotes = `${taskNotes}\n${promotionNote}`;
+		} else {
+			// If no existing notes, set taskNotes to the promotion note
+			taskNotes = promotionNote;
+		}
+
+		try {
+			// Await the updateTask function to ensure it's completed before proceeding
+			await updateTask();
+
+			// Close the edit modal after updating
+			showEditModal = false;
+		} catch (error) {
+			console.error('Error releasing task:', error);
+			// Optionally, handle the error here (e.g., show an alert or message)
+		}
+	}
+
+	async function handleRejectTask() {
+		// Set the task state to 'Todo'
+		edittaskState = 'Done';
+
+		// Get the current date and time
+		const now = new Date();
+
+		// Format the date to DD/MM/YYYY
+		const day = String(now.getDate()).padStart(2, '0');
+		const month = String(now.getMonth() + 1).padStart(2, '0');
+		const year = now.getFullYear();
+
+		// Format the time to HH:MM
+		const hours = String(now.getHours()).padStart(2, '0');
+		const minutes = String(now.getMinutes()).padStart(2, '0');
+
+		// Construct the formatted date and time
+		const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
+
+		// Prepare the promotion note
+		const promotionNote = `Rejected by: ${username} Dated on: ${formattedDateTime}`;
+
+		// Check if there are existing task notes
+		if (taskNotes && taskNotes.trim() !== '') {
+			// Append to existing task notes
+			taskNotes = `${taskNotes}\n${promotionNote}`;
+		} else {
+			// If no existing notes, set taskNotes to the promotion note
+			taskNotes = promotionNote;
+		}
 
 		try {
 			// Await the updateTask function to ensure it's completed before proceeding
@@ -255,17 +502,24 @@
 
 		// Check if there are new task notes to append
 		if (taskNotes) {
-			// Get the current date
+			// Get the current date and time
 			const now = new Date();
-			const day = String(now.getDate()).padStart(2, '0'); // Pad day if needed
-			const month = String(now.getMonth() + 1).padStart(2, '0'); // Pad month if needed
-			const year = now.getFullYear(); // Full year
 
 			// Format the date to DD/MM/YYYY
-			const formattedDate = `${day}/${month}/${year}`;
+			const day = String(now.getDate()).padStart(2, '0'); // Get day and pad with zero if needed
+			const month = String(now.getMonth() + 1).padStart(2, '0'); // Get month (0-indexed) and pad
+			const year = now.getFullYear(); // Get full year
 
-			// Append the new task notes to the taskComments
-			taskNotes = `Commented By: ${username} \nDated On: ${formattedDate} \n${taskNotes}`;
+			// Format the time to HH:MM (24-hour format)
+			const hours = String(now.getHours()).padStart(2, '0'); // Get hours and pad
+			const minutes = String(now.getMinutes()).padStart(2, '0'); // Get minutes and pad
+
+			// Construct the formatted date and time
+			const formattedDate = `${day}/${month}/${year}`;
+			const formattedTime = `${hours}:${minutes}`;
+
+			// Append to taskNotes
+			taskNotes = `Commented by: ${username} \nDated on: ${formattedDate} ${formattedTime} \n${taskNotes}\n`;
 		}
 
 		try {
@@ -486,9 +740,9 @@
 					<div class="form-group">
 						<div class="task-row">
 							<label for="taskId">Task ID: </label>
-							<span style="font-weight: bold; margin-left: 10px; font-size: 18px; flex:2;"
-								>{editabletaskId}</span
-							>
+							<span style="font-weight: bold; margin-left: 10px; font-size: 18px; flex:2;">
+								{editabletaskId}
+							</span>
 						</div>
 					</div>
 					<div class="form-group">
@@ -500,6 +754,10 @@
 								type="text"
 								bind:value={taskName}
 								placeholder="Task Name"
+								readonly={edittaskState === 'Closed' ||
+									edittaskState === 'Todo' ||
+									edittaskState === 'Doing' ||
+									edittaskState === 'Done'}
 							/>
 						</div>
 					</div>
@@ -511,6 +769,9 @@
 								id="taskDescription"
 								bind:value={taskDescription}
 								placeholder="Description"
+								readonly={edittaskState === 'Closed' ||
+									edittaskState === 'Todo' ||
+									edittaskState === 'Doing'}
 							></textarea>
 						</div>
 					</div>
@@ -518,7 +779,13 @@
 					<div class="form-group">
 						<div class="task-row">
 							<label for="taskPlan">Plan Name:</label>
-							<select id="taskPlan" bind:value={taskPlan}>
+							<select
+								id="taskPlan"
+								bind:value={taskPlan}
+								disabled={edittaskState === 'Closed' ||
+									edittaskState === 'Todo' ||
+									edittaskState === 'Doing'}
+							>
 								<option value="">Plan Name</option>
 								{#if plans.length !== 0}
 									{#each plans as plan}
@@ -594,6 +861,7 @@
 								id="comments"
 								bind:value={taskNotes}
 								placeholder="Comments"
+								readonly={edittaskState === 'Closed'}
 							></textarea>
 						</div>
 					</div>
@@ -606,13 +874,14 @@
 					<button style="background-color: green;" on:click={handleReleaseTask}>Release Task</button
 					>
 				{:else if edittaskState === 'Todo'}
-					<button style="background-color: green;" on:click>Take On</button>
+					<button style="background-color: green;" on:click={handleTakeOnTask}>Take On</button>
 				{:else if edittaskState === 'Doing'}
-					<button style="background-color: green;" on:click>To Review</button>
-					<button style="background-color: red;" on:click>Forfeit Task</button>
+					<button style="background-color: green;" on:click={handleToReviewTask}>To Review</button>
+					<button style="background-color: red;" on:click={handleForfeitTask}>Forfeit Task</button>
 				{:else if edittaskState === 'Done'}
-					<button style="background-color: green;" on:click>Approve Task</button>
-					<button style="background-color: red;" on:click>Reject Task</button>
+					<button style="background-color: green;" on:click={handleApproveTask}>Approve Task</button
+					>
+					<button style="background-color: red;" on:click={handleRejectTask}>Reject Task</button>
 				{/if}
 
 				{#if edittaskState !== 'Closed'}
@@ -829,5 +1098,13 @@
 		cursor: default;
 		font-weight: bold;
 		display: inline-flex;
+	}
+
+	select[disabled] {
+		color: black; /* Change text color to black */
+		font-weight: bolder;
+		background-color: #fff; /* Light background for better contrast */
+		border: none;
+		cursor: not-allowed; /* Change cursor to indicate it's disabled */
 	}
 </style>
