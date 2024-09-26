@@ -10,6 +10,7 @@ const { activeSessions } = require("../utils/config/sessionStore");
 exports.createApp = catchAsyncErrors(async (req, res) => {
   console.log("CreateApp request received");
   console.log(req.body);
+
   const {
     appAcronym,
     appDescription,
@@ -23,79 +24,63 @@ exports.createApp = catchAsyncErrors(async (req, res) => {
     appPermitDone,
   } = req.body;
 
+  // Validate required fields
   if (!appAcronym || !appRNumber || !appStartDate || !appEndDate) {
     return res.status(400).json({
       error:
-        "Missing fields. App Acroynm, R Number, Start Date, End Date are required.",
+        "Missing fields. App Acronym, R Number, Start Date, End Date are required.",
     });
   }
 
-  db.query(
-    "SELECT * FROM application WHERE App_Acronym = ?",
-    [appAcronym],
-    (err, results) => {
-      if (err) {
-        console.error("Error during application check:", err);
-        return res.status(500).json({ error: err.message });
-      }
+  try {
+    // Check if the application already exists
+    const existingApps = await db.query(
+      "SELECT * FROM application WHERE App_Acronym = ?",
+      [appAcronym]
+    );
 
-      if (results.length > 0) {
-        return res.status(409).json({
-          error:
-            "Application already exists. Please choose a different Acronym.",
-        });
-      }
-
-      try {
-        // Proceed with creating the application
-        db.query(
-          "INSERT INTO application (App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Create, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-          [
-            appAcronym,
-            appDescription,
-            appRNumber,
-            appStartDate,
-            appEndDate,
-            appPermitCreate,
-            appPermitOpen,
-            appPermitToDo,
-            appPermitDoing,
-            appPermitDone,
-          ],
-          (err, result) => {
-            if (err) {
-              if (err.code === "ER_DUP_ENTRY") {
-                return res.status(409).json({
-                  error:
-                    "Acronym already exists. Please choose a different acronym.",
-                });
-              } else {
-                console.error("Error during creation:", err);
-                return res.status(500).json({ error: err.message });
-              }
-            }
-            res.json({ message: "Application created successful" });
-          }
-        );
-      } catch (error) {
-        console.error("Error during application creation:", error);
-        return res.status(500).json({ error: error.message });
-      }
+    if (existingApps[0].length > 0) {
+      return res.status(409).json({
+        error: "Application already exists. Please choose a different Acronym.",
+      });
     }
-  );
+
+    // Proceed with creating the application
+    await db.query(
+      "INSERT INTO application (App_Acronym, App_Description, App_Rnumber, App_startDate, App_endDate, App_permit_Create, App_permit_Open, App_permit_toDoList, App_permit_Doing, App_permit_Done) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        appAcronym,
+        appDescription,
+        appRNumber,
+        appStartDate,
+        appEndDate,
+        appPermitCreate,
+        appPermitOpen,
+        appPermitToDo,
+        appPermitDoing,
+        appPermitDone,
+      ]
+    );
+
+    res.json({ message: "Application created successfully" });
+  } catch (error) {
+    console.error("Error during application creation:", error);
+    return res.status(500).json({ error: error.message });
+  }
 });
 
 //GET >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 // Get all applications
 exports.getApps = catchAsyncErrors(async (req, res) => {
   const appsQuery = "SELECT * FROM application"; // Query to get applications from application table
-  db.query(appsQuery, (err, result) => {
-    if (err) {
-      console.error("Error during application retrieval:", err);
-      return res.status(500).json({ error: err.message });
-    }
-    res.json(result);
-  });
+
+  try {
+    const [result] = await db.query(appsQuery); // Use await to get the result
+    res.json(result); // Send the result as JSON
+  } catch (err) {
+    console.error("Error during application retrieval:", err);
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // Get application by acronym
@@ -106,17 +91,21 @@ exports.getAppByAcronym = catchAsyncErrors(async (req, res) => {
     return res.status(400).json({ error: "App Acronym is required" });
   }
 
-  db.query(
-    "SELECT * FROM application WHERE App_Acronym = ?",
-    [appAcronym],
-    (err, result) => {
-      if (err) {
-        console.error("Error during application retrieval:", err);
-        return res.status(500).json({ error: err.message });
-      }
-      res.json(result);
+  try {
+    const [result] = await db.query(
+      "SELECT * FROM application WHERE App_Acronym = ?",
+      [appAcronym]
+    ); // Use await to get the result
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: "Application not found" });
     }
-  );
+
+    res.json(result[0]); // Return the first result as the application
+  } catch (err) {
+    console.error("Error during application retrieval:", err);
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 //PUT >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -171,12 +160,8 @@ exports.editApp = catchAsyncErrors(async (req, res) => {
     appRNumber, // WHERE App_Rnumber = ?
   ];
 
-  // Execute the update query
-  db.query(query, values, (err, result) => {
-    if (err) {
-      console.error("Error during application update:", err);
-      return res.status(500).json({ error: "Internal server error" });
-    }
+  try {
+    const [result] = await db.query(query, values); // Execute the update query
 
     if (result.affectedRows === 0) {
       return res
@@ -187,7 +172,10 @@ exports.editApp = catchAsyncErrors(async (req, res) => {
     return res
       .status(200)
       .json({ message: "Application updated successfully." });
-  });
+  } catch (err) {
+    console.error("Error during application update:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 //PLAN >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -209,46 +197,43 @@ exports.createPlan = catchAsyncErrors(async (req, res) => {
     });
   }
 
-  db.query(
-    "SELECT * FROM plan WHERE Plan_MVP_name = ?",
-    [planName],
-    (err, results) => {
-      if (err) {
-        console.error("Error during application check:", err);
-        return res.status(500).json({ error: err.message });
-      }
+  // Check if the plan already exists
+  const checkPlanQuery = "SELECT * FROM plan WHERE Plan_MVP_name = ?";
+  const [existingPlans] = await db.query(checkPlanQuery, [planName]);
 
-      if (results.length > 0) {
-        return res.status(409).json({
-          error: "Plan already exists. Please choose a different plan name.",
-        });
-      }
+  if (existingPlans.length > 0) {
+    return res.status(409).json({
+      error: "Plan already exists. Please choose a different plan name.",
+    });
+  }
 
-      try {
-        db.query(
-          "INSERT INTO plan (Plan_MVP_name, Plan_app_Acronym, Plan_startDate, Plan_endDate, Plan_color) VALUES (?, ?, ?, ?, ?)",
-          [planName, planappAcronym, planStartDate, planEndDate, planColor],
-          (err, result) => {
-            if (err) {
-              if (err.code === "ER_DUP_ENTRY") {
-                return res.status(409).json({
-                  error:
-                    "Plan already exists. Please choose a different plan name.",
-                });
-              } else {
-                console.error("Error during creation:", err);
-                return res.status(500).json({ error: err.message });
-              }
-            }
-            res.json({ message: "Plan created successful" });
-          }
-        );
-      } catch (error) {
-        console.error("Error during plan creation:", error);
-        return res.status(500).json({ error: error.message });
-      }
+  // Proceed to create the new plan
+  const insertPlanQuery = `
+    INSERT INTO plan (Plan_MVP_name, Plan_app_Acronym, Plan_startDate, Plan_endDate, Plan_color)
+    VALUES (?, ?, ?, ?, ?)
+  `;
+
+  const values = [
+    planName,
+    planappAcronym,
+    planStartDate,
+    planEndDate,
+    planColor,
+  ];
+
+  try {
+    await db.query(insertPlanQuery, values);
+    return res.json({ message: "Plan created successfully" });
+  } catch (err) {
+    if (err.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        error: "Plan already exists. Please choose a different plan name.",
+      });
+    } else {
+      console.error("Error during plan creation:", err);
+      return res.status(500).json({ error: err.message });
     }
-  );
+  }
 });
 
 //GET >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -256,20 +241,25 @@ exports.createPlan = catchAsyncErrors(async (req, res) => {
 exports.getPlans = catchAsyncErrors(async (req, res) => {
   const { planappAcronym } = req.body;
 
-  const plansQuery = "SELECT * FROM plan WHERE Plan_app_Acronym = ?"; // Query to get applications from application table
+  // Check if planappAcronym is provided
+  if (!planappAcronym) {
+    return res.status(400).json({ error: "App Acronym is required" });
+  }
 
-  db.query(plansQuery, [planappAcronym], (err, result) => {
-    if (err) {
-      console.error("Error during plans retrieval:", err);
-      return res.status(500).json({ error: err.message });
-    }
+  const plansQuery = "SELECT * FROM plan WHERE Plan_app_Acronym = ?"; // Query to get plans based on the app acronym
+
+  try {
+    const [result] = await db.query(plansQuery, [planappAcronym]);
     res.json(result);
-  });
+  } catch (err) {
+    console.error("Error during plans retrieval:", err);
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 //TASK >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 //create task
-exports.createTask = catchAsyncErrors((req, res) => {
+exports.createTask = catchAsyncErrors(async (req, res) => {
   const {
     taskId,
     taskPlan,
@@ -299,116 +289,165 @@ exports.createTask = catchAsyncErrors((req, res) => {
     });
   }
 
-  // Start the transaction
-  db.query("BEGIN", (err) => {
-    if (err) {
-      console.error("Error starting transaction:", err);
-      return res.status(500).json({ error: err.message });
+  try {
+    // Start transaction
+    await db.query("BEGIN"); // Start the transaction
+
+    // Check if task already exists
+    const [results] = await db.query("SELECT * FROM task WHERE Task_id = ?", [
+      taskId,
+    ]);
+
+    if (results.length > 0) {
+      await db.query("ROLLBACK"); // Rollback if task already exists
+      return res.status(409).json({
+        error: "Error...TaskID already exists.",
+      });
     }
 
-    // Check if the task already exists
-    db.query(
-      "SELECT * FROM task WHERE Task_id = ?",
-      [taskId],
-      (err, results) => {
-        if (err) {
-          console.error("Error during task check:", err);
-          return db.query("ROLLBACK", (rollbackErr) => {
-            if (rollbackErr)
-              console.error("Error rolling back transaction:", rollbackErr);
-            return res.status(500).json({ error: err.message });
-          });
-        }
-
-        if (results.length > 0) {
-          return db.query("ROLLBACK", (rollbackErr) => {
-            if (rollbackErr)
-              console.error("Error rolling back transaction:", rollbackErr);
-            return res.status(409).json({
-              error: "Error...TaskID already exists.",
-            });
-          });
-        }
-
-        // Insert the new task
-        db.query(
-          "INSERT INTO task (Task_id, Task_plan, Task_app_Acronym, Task_name, Task_description, Task_notes, Task_state, Task_creator, Task_owner, Task_createDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-          [
-            taskId,
-            taskPlan,
-            taskappAcronym,
-            taskName,
-            taskDescription,
-            taskNotes,
-            taskState,
-            taskCreator,
-            taskOwner,
-            taskcreateDate,
-          ],
-          (insertErr) => {
-            if (insertErr) {
-              console.error("Error during task insertion:", insertErr);
-              return db.query("ROLLBACK", (rollbackErr) => {
-                if (rollbackErr)
-                  console.error("Error rolling back transaction:", rollbackErr);
-                return res.status(500).json({ error: insertErr.message });
-              });
-            }
-
-            // Update the App_Rnumber
-            db.query(
-              "UPDATE application SET App_Rnumber = App_Rnumber + 1 WHERE App_Acronym = ?",
-              [taskappAcronym],
-              (updateErr) => {
-                if (updateErr) {
-                  console.error("Error during App_Rnumber update:", updateErr);
-                  return db.query("ROLLBACK", (rollbackErr) => {
-                    if (rollbackErr)
-                      console.error(
-                        "Error rolling back transaction:",
-                        rollbackErr
-                      );
-                    return res.status(500).json({ error: updateErr.message });
-                  });
-                }
-
-                // Commit the transaction
-                db.query("COMMIT", (commitErr) => {
-                  if (commitErr) {
-                    console.error("Error committing transaction:", commitErr);
-                    return db.query("ROLLBACK", (rollbackErr) => {
-                      if (rollbackErr)
-                        console.error(
-                          "Error rolling back transaction:",
-                          rollbackErr
-                        );
-                      return res.status(500).json({ error: commitErr.message });
-                    });
-                  }
-
-                  return res.json({
-                    message: "Task created successfully",
-                  });
-                });
-              }
-            );
-          }
-        );
-      }
+    // If the task does not exist, insert the new task
+    await db.query(
+      "INSERT INTO task (Task_id, Task_plan, Task_app_Acronym, Task_name, Task_description, Task_notes, Task_state, Task_creator, Task_owner, Task_createDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        taskId,
+        taskPlan,
+        taskappAcronym,
+        taskName,
+        taskDescription,
+        taskNotes,
+        taskState,
+        taskCreator,
+        taskOwner,
+        taskcreateDate,
+      ]
     );
-  });
+
+    // Increment the App_Rnumber
+    await db.query(
+      "UPDATE application SET App_Rnumber = App_Rnumber + 1 WHERE App_Acronym = ?",
+      [taskappAcronym]
+    );
+
+    // Commit transaction
+    await db.query("COMMIT"); // Commit the transaction
+
+    return res.json({
+      message: "Task created successfully",
+    });
+  } catch (error) {
+    console.error("Transaction error:", error);
+    await db.query("ROLLBACK"); // Rollback on error
+    return res.status(500).json({ error: error.message });
+  }
 });
 
 //GET >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 // Get all tasks
 exports.getTasks = catchAsyncErrors(async (req, res) => {
   const { taskappAcronym } = req.body;
-  const tasksQuery = "SELECT * FROM task WHERE Task_app_Acronym = ?"; // Query to get tasks from task table
-  db.query(tasksQuery, [taskappAcronym], (err, result) => {
-    if (err) {
-      console.error("Error during task retrieval:", err);
-      return res.status(500).json({ error: err.message });
-    }
+
+  // Check if taskappAcronym is provided
+  if (!taskappAcronym) {
+    return res.status(400).json({ error: "App Acronym is required" });
+  }
+
+  const tasksQuery = "SELECT * FROM task WHERE Task_app_Acronym = ?"; // Query to get tasks based on the app acronym
+
+  try {
+    const [result] = await db.query(tasksQuery, [taskappAcronym]);
     res.json(result);
-  });
+  } catch (err) {
+    console.error("Error during task retrieval:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+//PUT >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+// edit task
+exports.editTask = catchAsyncErrors(async (req, res) => {
+  const {
+    taskId,
+    taskPlan,
+    taskName,
+    taskDescription,
+    taskNotes,
+    taskState,
+    taskOwner,
+  } = req.body;
+
+  // Validate required fields
+  if (!taskId) {
+    return res.status(400).json({
+      error: "Missing field. Task ID is required.",
+    });
+  }
+
+  try {
+    // Fetch the current task from the database
+    const [currentTask] = await db.query(
+      "SELECT Task_notes FROM task WHERE Task_id = ?",
+      [taskId]
+    );
+
+    if (!currentTask.length) {
+      return res.status(404).json({ error: "Task not found." });
+    }
+
+    // Start constructing the update query and values
+    const fieldsToUpdate = [];
+    const values = [];
+
+    // Check each field and add to the update statement if it's present
+    if (taskPlan !== undefined) {
+      fieldsToUpdate.push("Task_plan = ?");
+      values.push(taskPlan);
+    }
+    if (taskName !== undefined) {
+      fieldsToUpdate.push("Task_name = ?");
+      values.push(taskName);
+    }
+    if (taskDescription !== undefined) {
+      fieldsToUpdate.push("Task_description = ?");
+      values.push(taskDescription);
+    }
+    if (taskState !== undefined) {
+      fieldsToUpdate.push("Task_state = ?");
+      values.push(taskState);
+    }
+    if (taskOwner !== undefined) {
+      fieldsToUpdate.push("Task_owner = ?");
+      values.push(taskOwner);
+    }
+
+    // Handle taskNotes: append if provided
+    if (taskNotes !== undefined) {
+      const existingNotes = currentTask[0].Task_notes || ""; // Fetch existing notes
+      const updatedNotes =
+        existingNotes + (existingNotes ? "\n" : "") + taskNotes; // Append new notes
+      fieldsToUpdate.push("Task_notes = ?");
+      values.push(updatedNotes);
+    }
+
+    // If no fields to update, return a message
+    if (fieldsToUpdate.length === 0) {
+      return res.status(400).json({
+        error: "No fields to update.",
+      });
+    }
+
+    // Construct the final SQL query
+    const sql = `UPDATE task SET ${fieldsToUpdate.join(
+      ", "
+    )} WHERE Task_id = ?`;
+    values.push(taskId); // Add taskId for the WHERE clause
+
+    // Execute the query
+    await db.query(sql, values);
+    return res.json({
+      message: "Task updated successfully",
+    });
+  } catch (error) {
+    console.error("Transaction error:", error);
+    return res.status(500).json({ error: error.message });
+  }
 });

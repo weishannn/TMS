@@ -11,53 +11,46 @@ const cookieOptions = {
 const { activeSessions } = require("../utils/config/sessionStore");
 
 // CHECKGROUP FUNCTION >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-exports.checkAdmin = catchAsyncErrors(async (req, res) => {
+exports.checkAdmin = catchAsyncErrors(async (req, res, next) => {
   const { username } = req.body;
 
+  // Check if username is provided
   if (!username) {
     return res.status(400).json({ error: "Username is required" });
   }
 
-  try {
-    await new Promise((resolve, reject) => {
-      checkGroup(username, "admin")(req, res, (err) => {
-        if (err) {
-          return reject;
-        }
-        resolve();
-      });
-    });
-
-    res.status(200).json({ isAdmin: true });
-  } catch (err) {
-    if (err.message === "Unauthorized" || err.statusCode === 401) {
-      return;
-    } else {
+  // Use the checkGroup middleware directly
+  checkGroup(username, "admin")(req, res, (err) => {
+    if (err) {
+      // If an error is thrown by checkGroup, it will handle the response
       console.error("Error checking admin status:", err);
-      res.status(500).json({ error: "Internal Server Error" });
+      return; // No need to return a response, checkGroup already did
     }
-  }
+
+    // If checkGroup didn't send a response, user is admin
+    return res.status(200).json({ isAdmin: true });
+  });
 });
 
-//for A2
-exports.checkisInGroup = catchAsyncErrors(async (req, res) => {
-  const { username, userGroup } = req.body;
+// //for A2
+// exports.checkisInGroup = catchAsyncErrors(async (req, res) => {
+//   const { username, userGroup } = req.body;
 
-  if (!username || !userGroup) {
-    return res
-      .status(400)
-      .json({ error: "Username and Groupname is required" });
-  }
+//   if (!username || !userGroup) {
+//     return res
+//       .status(400)
+//       .json({ error: "Username and Groupname is required" });
+//   }
 
-  try {
-    checkGroup(username, userGroup)(req, res, () => {
-      res.status(200).json({ isInGroup: true });
-    });
-  } catch (err) {
-    console.error("Error checking group status:", err);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
+//   try {
+//     checkGroup(username, userGroup)(req, res, () => {
+//       res.status(200).json({ isInGroup: true });
+//     });
+//   } catch (err) {
+//     console.error("Error checking group status:", err);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
 
 //PUT >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 // Update user own profile
@@ -68,7 +61,7 @@ exports.updateProfile = catchAsyncErrors(async (req, res) => {
   // Initialize the query and values array
   let query = "UPDATE accounts SET ";
   const values = [];
-  let updateMessage = [];
+  const updateMessage = []; // Use const since we don't reassign
 
   // Conditionally append the fields to the query and values array
   if (password) {
@@ -92,6 +85,7 @@ exports.updateProfile = catchAsyncErrors(async (req, res) => {
     updateMessage.push("Profile Email updated successfully");
   }
 
+  // Check if any updates are to be made
   if (updateMessage.length === 0) {
     return res.status(400).json({ error: "No fields provided for update" });
   }
@@ -101,16 +95,16 @@ exports.updateProfile = catchAsyncErrors(async (req, res) => {
   values.push(username);
 
   // Execute the query
-  db.query(query, values, (err, result) => {
-    if (err) {
-      console.error("Error during update:", err);
-      return res.status(500).json({ error: err.message });
-    }
+  try {
+    await db.query(query, values);
     // Combine messages if both fields were updated
     const responseMessage =
       updateMessage.length > 1 ? updateMessage.join(" and ") : updateMessage[0];
     res.json({ message: responseMessage });
-  });
+  } catch (err) {
+    console.error("Error during update:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Edit other user profile
@@ -143,6 +137,7 @@ exports.editOtherUserProfile = catchAsyncErrors(async (req, res) => {
     accountValues.push(email);
     updateMessages.push("Profile Email updated successfully");
   }
+
   // Skip accountStatus update if the username is "Admin"
   if (accountStatus && username !== "Admin") {
     accountQuery += "accountStatus = ?, ";
@@ -159,68 +154,37 @@ exports.editOtherUserProfile = catchAsyncErrors(async (req, res) => {
     accountValues.push(username);
 
     // Execute the account update query
-    await new Promise((resolve, reject) => {
-      db.query(accountQuery, accountValues, (err, result) => {
-        if (err) {
-          console.error("Error updating account:", err);
-          return reject(err);
-        }
-        resolve(result);
-      });
-    });
+    await db.query(accountQuery, accountValues);
   }
 
   // Handle user group updates
   if (userGroups && Array.isArray(userGroups)) {
     try {
       // Remove existing groups for the user
-      await new Promise((resolve, reject) => {
-        db.query(
-          "DELETE FROM usergroup WHERE username = ?",
-          [username],
-          (err, result) => {
-            if (err) {
-              console.error("Error removing existing user groups:", err);
-              return reject({
-                status: 500,
-                message: "Internal Server Error",
-              });
-            }
-            resolve(result);
-          }
-        );
-      });
+      await db.query("DELETE FROM usergroup WHERE username = ?", [username]);
 
       // Insert new groups
       for (const group of userGroups) {
-        await new Promise((resolve, reject) => {
-          db.query(
+        try {
+          await db.query(
             "INSERT INTO usergroup (username, user_group) VALUES (?, ?)",
-            [username, group],
-            (err, result) => {
-              if (err) {
-                if (err.code === "ER_DUP_ENTRY") {
-                  // Handle duplicate entry error
-                  return reject({
-                    status: 411,
-                    message: "User already in the group",
-                  });
-                } else {
-                  console.error("Error inserting new user group:", err);
-                  return reject({
-                    status: 500,
-                    message: "Internal Server Error",
-                  });
-                }
-              }
-              resolve(result);
-            }
+            [username, group]
           );
-        });
+        } catch (err) {
+          if (err.code === "ER_DUP_ENTRY") {
+            // Handle duplicate entry error
+            return res
+              .status(411)
+              .json({ message: "User already in the group" });
+          } else {
+            console.error("Error inserting new user group:", err);
+            return res.status(500).json({ error: "Internal Server Error" });
+          }
+        }
       }
-    } catch (error) {
-      console.error("An error occurred:", error);
-      throw error; // Rethrow error to be caught by the global error handler
+    } catch (err) {
+      console.error("Error removing existing user groups:", err);
+      return res.status(500).json({ error: "Internal Server Error" });
     }
   }
 
@@ -243,18 +207,25 @@ exports.deleteUserGroup = catchAsyncErrors(async (req, res) => {
       .json({ error: "Username and user group are required" });
   }
 
-  db.query(
-    "DELETE FROM usergroup WHERE username = ? AND user_group = ?",
-    [username, userGroup],
-    (err, result) => {
-      if (err) {
-        console.error("Error deleting user group:", err);
-        return res.status(500).json({ error: err.message });
-      } else {
-        res.json({ message: "User group deleted successfully" });
-      }
+  try {
+    // Execute the DELETE query using async/await
+    const [result] = await db.query(
+      "DELETE FROM usergroup WHERE username = ? AND user_group = ?",
+      [username, userGroup]
+    );
+
+    // Check if the query affected any rows
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "User group not found" });
     }
-  );
+
+    // Send success response
+    res.json({ message: "User group deleted successfully" });
+  } catch (err) {
+    // Handle errors
+    console.error("Error deleting user group:", err);
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 //GET >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -262,37 +233,40 @@ exports.deleteUserGroup = catchAsyncErrors(async (req, res) => {
 exports.getUsers = catchAsyncErrors(async (req, res) => {
   const usersQuery = "SELECT * FROM accounts"; // Query to get users from accounts table
 
-  // Fetch users
-  db.query(usersQuery, (err, users) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    // Send both users and groups as a response
+  try {
+    // Fetch users using async/await
+    const [users] = await db.query(usersQuery);
+
+    // Send users as a response
     res.json({
       users: users, // Array of users
     });
 
-    console.log(users);
-  });
+    console.log(users); // Log the result for debugging
+  } catch (err) {
+    // Handle any errors during the query
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // Get all groups
 exports.getGroups = catchAsyncErrors(async (req, res) => {
-  const groupsQuery = "SELECT distinct user_group FROM usergroup"; // Query to get distinct groups
+  const groupsQuery = "SELECT DISTINCT user_group FROM usergroup"; // Query to get distinct groups
 
-  // Fetch groups
-  db.query(groupsQuery, (err, groups) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
+  try {
+    // Fetch groups using async/await
+    const [groups] = await db.query(groupsQuery);
 
-    // Send both users and groups as a response
+    // Send groups as a response
     res.json({
       groups: groups, // Array of groups
     });
 
-    console.log(groups);
-  });
+    console.log(groups); // Log the result for debugging
+  } catch (err) {
+    // Handle any errors during the query
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // Get all users and their respective groups
@@ -302,11 +276,9 @@ exports.getUsersAndGroups = catchAsyncErrors(async (req, res) => {
     FROM accounts
     INNER JOIN usergroup ON accounts.username = usergroup.username`; // Query to get unique username and user_group pairs
 
-  // Fetch users and groups
-  db.query(usersAndGroupsQuery, (err, result) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
+  try {
+    // Fetch users and groups using async/await
+    const [result] = await db.query(usersAndGroupsQuery);
 
     // Group data by username
     const usersMap = result.reduce((acc, row) => {
@@ -326,12 +298,15 @@ exports.getUsersAndGroups = catchAsyncErrors(async (req, res) => {
     });
 
     console.log(usersWithGroups); // Log the result for debugging
-  });
+  } catch (err) {
+    // Handle any errors during the query
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // Get the current user using the username from the token
 exports.getCurrentUser = catchAsyncErrors(async (req, res) => {
-  const token = req.cookies.token; // Extract token from cookies - to not be dependent on the middleware
+  const token = req.cookies.token; // Extract token from cookies
 
   // Check if token exists and is in the active session store
   if (!token || !activeSessions[token]) {
@@ -345,21 +320,23 @@ exports.getCurrentUser = catchAsyncErrors(async (req, res) => {
     const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
     const username = decoded.username;
 
-    // Query the accounts table using the username from the token
+    // Query the accounts table using async/await
     const query = "SELECT * FROM accounts WHERE username = ?";
-    db.query(query, [username], (err, results) => {
-      if (err) {
-        return res.status(500).json({ message: "Server Error" });
-      }
+    const [results] = await db.query(query, [username]);
 
-      if (results.length === 0) {
-        return res.status(404).json({ message: "User not found" });
-      }
+    // Check if user was found
+    if (results.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-      res.json(results[0]); // Return the user data
-    });
+    // Return the user data
+    res.json(results[0]);
   } catch (err) {
-    return res.status(403).json({ message: "Invalid token" });
+    // Handle token verification and query errors
+    if (err.name === "JsonWebTokenError" || err.name === "TokenExpiredError") {
+      return res.status(403).json({ message: "Invalid or expired token" });
+    }
+    return res.status(500).json({ message: "Server Error" });
   }
 });
 
@@ -389,51 +366,41 @@ exports.createUser = catchAsyncErrors(async (req, res) => {
     });
   }
 
-  // Check if username already exists
-  db.query(
-    "SELECT * FROM accounts WHERE username = ?",
-    [username],
-    (err, results) => {
-      if (err) {
-        console.error("Error during user check:", err);
-        return res.status(500).json({ error: err.message });
-      }
+  try {
+    // Check if username already exists
+    const [results] = await db.query(
+      "SELECT * FROM accounts WHERE username = ?",
+      [username]
+    );
 
-      if (results.length > 0) {
-        return res.status(409).json({
-          error: "Username already exists. Please choose a different username.",
-        });
-      }
-
-      // Hash the password and handle errors during hashing
-      try {
-        const hashedPassword = bcrypt.hashSync(password, 10);
-
-        // Proceed with creating the user
-        db.query(
-          "INSERT INTO accounts (username, password, email, accountStatus) VALUES (?, ?, ?, ?)",
-          [username, hashedPassword, email, accountStatus],
-          (err, result) => {
-            if (err) {
-              if (err.code === "ER_DUP_ENTRY") {
-                return res.status(409).json({
-                  error:
-                    "Username already exists. Please choose a different username.",
-                });
-              } else {
-                console.error("Error during registration:", err);
-                return res.status(500).json({ error: err.message });
-              }
-            }
-            res.json({ message: "Registration successful" });
-          }
-        );
-      } catch (bcryptError) {
-        console.error("Error during password hashing:", bcryptError);
-        return res.status(500).json({ error: "Password hashing failed." });
-      }
+    if (results.length > 0) {
+      return res.status(409).json({
+        error: "Username already exists. Please choose a different username.",
+      });
     }
-  );
+
+    // Hash the password using bcrypt
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Proceed with creating the user
+    const [result] = await db.query(
+      "INSERT INTO accounts (username, password, email, accountStatus) VALUES (?, ?, ?, ?)",
+      [username, hashedPassword, email, accountStatus]
+    );
+
+    // Respond with success
+    res.json({ message: "Registration successful" });
+  } catch (err) {
+    // Handle any errors
+    if (err.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        error: "Username already exists. Please choose a different username.",
+      });
+    } else {
+      console.error("Error during registration:", err);
+      res.status(500).json({ error: "An error occurred during registration." });
+    }
+  }
 });
 
 //put user into group function
@@ -449,40 +416,25 @@ exports.putUserIntoGroup = catchAsyncErrors(async (req, res) => {
   }
 
   try {
-    // Attempt to insert the user into the group
-    await new Promise((resolve, reject) => {
-      db.query(
-        "INSERT INTO usergroup (username, user_group) VALUES (?, ?)",
-        [username, userGroup],
-        (err, result) => {
-          if (err) {
-            // Handle specific error codes
-            if (err.code === "ER_DUP_ENTRY") {
-              return reject({
-                status: 409, // Conflict
-                message: "User already in the group.",
-              });
-            }
-            console.error("Error during group assignment:", err);
-            return reject({
-              status: 500, // Internal Server Error
-              message: "An error occurred while adding the user to the group.",
-            });
-          }
-          resolve(result);
-        }
-      );
-    });
+    // Attempt to insert the user into the group using async/await
+    const [result] = await db.query(
+      "INSERT INTO usergroup (username, user_group) VALUES (?, ?)",
+      [username, userGroup]
+    );
 
     // Respond with success
     res.json({ message: "User added to group successfully." });
-  } catch (error) {
-    // Catch and respond to errors
-    if (error.status && error.message) {
-      res.status(error.status).json({ error: error.message });
-    } else {
-      res.status(500).json({ error: "Internal Server Error" });
+  } catch (err) {
+    // Handle specific error codes
+    if (err.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ error: "User already in the group." }); // Conflict
     }
+
+    // Log and respond with a general error
+    console.error("Error during group assignment:", err);
+    res
+      .status(500)
+      .json({ error: "An error occurred while adding the user to the group." });
   }
 });
 
@@ -503,21 +455,23 @@ exports.createGroup = catchAsyncErrors(async (req, res) => {
     });
   }
 
-  // Proceed with inserting the group into the database if validation passes
-  db.query(
-    "INSERT INTO usergroup (username, user_group) VALUES ('', ?)",
-    [userGroup],
-    (err, result) => {
-      if (err) {
-        console.error("Error during group creation:", err);
-        return res.status(500).json({ error: err.message });
-      }
-      res.json({ message: "Group created successfully" });
-    }
-  );
+  try {
+    // Use await to handle the database query with mysql2/promise
+    const [result] = await db.query(
+      "INSERT INTO usergroup (username, user_group) VALUES ('', ?)",
+      [userGroup]
+    );
+
+    // If query is successful, return success message
+    res.json({ message: "Group created successfully" });
+  } catch (err) {
+    // Handle any errors
+    console.error("Error during group creation:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-/// Login function with JWT generation
+// Login function with JWT generation
 exports.login = async (req, res) => {
   const { username, password } = req.body;
   const ipAddress =
@@ -525,60 +479,49 @@ exports.login = async (req, res) => {
   const browser = req.headers["user-agent"];
 
   try {
-    // Query database for user
-    db.query(
-      "SELECT * FROM accounts WHERE username = ?",
-      [username],
-      (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
+    // Query database for user using async/await
+    const [rows] = await db.query("SELECT * FROM accounts WHERE username = ?", [
+      username,
+    ]);
 
-        if (rows.length > 0) {
-          const user = rows[0];
+    if (rows.length > 0) {
+      const user = rows[0];
 
-          if (user.accountStatus === "inactive") {
-            return res.status(403).json({ error: "Account is inactive" });
-          }
-
-          bcrypt.compare(password, user.password, (err, result) => {
-            if (err) return res.status(500).json({ error: err.message });
-
-            if (result) {
-              // If user is already logged in, invalidate the old session
-              for (const token in activeSessions) {
-                const sessionData = activeSessions[token];
-                if (sessionData.username === username) {
-                  delete activeSessions[token]; // Invalidate previous session
-                }
-              }
-
-              // Generate new token
-              const token = jwt.sign(
-                { username: user.username, ipAddress, browser }, // Include IP address
-                process.env.ACCESS_TOKEN_SECRET,
-                { expiresIn: "1h" } // Set token expiration
-              );
-
-              // Store new token in session store
-              activeSessions[token] = { username: user.username, ipAddress };
-
-              // Set the token in cookie
-              res.cookie("token", token, cookieOptions);
-              return res
-                .status(200)
-                .json({ message: "Login successful", user });
-            } else {
-              return res
-                .status(401)
-                .json({ error: "Invalid username or password" });
-            }
-          });
-        } else {
-          return res
-            .status(401)
-            .json({ error: "Invalid username or password" });
-        }
+      if (user.accountStatus === "inactive") {
+        return res.status(403).json({ error: "Invalid Credentials" });
       }
-    );
+
+      // Use async/await for bcrypt.compare
+      const passwordMatch = await bcrypt.compare(password, user.password);
+
+      if (passwordMatch) {
+        // If user is already logged in, invalidate the old session
+        for (const token in activeSessions) {
+          const sessionData = activeSessions[token];
+          if (sessionData.username === username) {
+            delete activeSessions[token]; // Invalidate previous session
+          }
+        }
+
+        // Generate new token
+        const token = jwt.sign(
+          { username: user.username, ipAddress, browser }, // Include IP address
+          process.env.ACCESS_TOKEN_SECRET,
+          { expiresIn: "1h" } // Set token expiration
+        );
+
+        // Store new token in session store
+        activeSessions[token] = { username: user.username, ipAddress };
+
+        // Set the token in cookie
+        res.cookie("token", token, cookieOptions);
+        return res.status(200).json({ message: "Login successful", user });
+      } else {
+        return res.status(401).json({ error: "Invalid Credentials" });
+      }
+    } else {
+      return res.status(401).json({ error: "Invalid Credentials" });
+    }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -92,25 +92,26 @@ router.delete(
   userController.deleteUserGroup
 );
 
-// // task controller
-// //application
-// router.post(
-//   "/createApp",
-//   // authenticateToken("active"),
-//   taskController.createApp
-// );
-// router.get("/getApps", taskController.getApps); //get all applications
-// router.put("/editApp", taskController.editApp);
+// task controller
+//application
+router.post(
+  "/createApp",
+  // authenticateToken("active"),
+  taskController.createApp
+);
+router.get("/getApps", taskController.getApps); //get all applications
+router.put("/editApp", taskController.editApp);
 
-// //plan
-// router.post("/createPlan", taskController.createPlan);
-// router.post("/getPlans", taskController.getPlans);
+//plan
+router.post("/createPlan", taskController.createPlan);
+router.post("/getPlans", taskController.getPlans);
 
-// //task
-// router.post("/createTask", taskController.createTask);
-// router.post("/getTasks", taskController.getTasks);
+//task
+router.post("/createTask", taskController.createTask);
+router.post("/getTasks", taskController.getTasks);
+router.put("/editTask", taskController.editTask);
 
-// //to be the most bottom [why????]
-// router.get("/:appAcronym", taskController.getAppByAcronym); //get 1 application
+//to be the most bottom [why????]
+router.get("/:appAcronym", taskController.getAppByAcronym); //get 1 application
 
 module.exports = router;

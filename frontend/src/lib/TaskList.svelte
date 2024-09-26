@@ -90,7 +90,7 @@
 			return plan.Plan_color; // Return the correct plan color
 		} else {
 			console.log(`Plan Name: ${planName} not found.`);
-			return; // Default color if the plan is not found
+			return '#ffffff'; // Default color if the plan is not found
 		}
 	}
 
@@ -108,7 +108,7 @@
 		showEditModal = false;
 		taskName = '';
 		taskNotes = '';
-		taskPlan;
+		taskPlan = '';
 	}
 
 	const createTask = async () => {
@@ -117,8 +117,24 @@
 			return;
 		}
 		if (!taskPlan) {
-			taskPlan = null; // Use simple assignment
+			taskPlan = null;
 		}
+		if (taskNotes) {
+			// Get the current date
+			const now = new Date();
+
+			// Format the date to DD/MM/YYYY
+			const day = String(now.getDate()).padStart(2, '0'); // Get day and pad with zero if needed
+			const month = String(now.getMonth() + 1).padStart(2, '0'); // Get month (0-indexed) and pad
+			const year = now.getFullYear(); // Get full year
+
+			// Construct the formatted date
+			const formattedDate = `${day}/${month}/${year}`;
+
+			// Append to taskNotes
+			taskNotes = `Commented By: ${username} \nDated On: ${formattedDate} \n${taskNotes}\n`;
+		}
+
 		//convert data to epoch
 		const epochCreateDate = Math.floor(new Date(taskcreateDate).getTime() / 1000);
 
@@ -172,23 +188,128 @@
 	let taskOwner = username;
 	let taskcreateDate = new Date().toISOString().split('T')[0];
 	let taskNotes = '';
+	let taskComments = '';
 
 	//editable modal
 	let showEditModal = false;
 	let editabletaskId = '';
+	let edittaskState = '';
 
 	function handleEditTask(task) {
 		showEditModal = true;
 		taskPlan = task.Task_plan;
 		taskName = task.Task_name;
 		taskDescription = task.Task_description;
-		taskState = task.Task_state;
-		taskNotes = task.Task_notes;
-		taskOwner = task.Task_owner;
+		edittaskState = task.Task_state;
+		taskNotes = '';
+		taskOwner = username;
 		editabletaskId = task.Task_id;
-		taskCreator = task.Task_creator;
-		taskcreateDate = new Date(task.Task_createDate * 1000).toISOString().split('T')[0];
+		taskCreator = task.Task_creator || '';
+
+		// Convert create date from epoch to YYYY-MM-DD format
+		taskcreateDate = new Date(task.Task_createDate * 1000).toISOString().split('T')[0]; // Format the date
+
+		// Format task comments
+		if (task.Task_notes) {
+			taskComments = task.Task_notes.split(/(?=Commented By: )/) // Split at each "Commented By"
+				.map((comment) => comment.trim()) // Trim each comment block
+				.map((comment) => comment.replace(/(Dated On: \d{2}\/\d{2}\/\d{4})/, '\n$1')) // Ensure "Dated On" has a line break before it
+				.map((comment) => comment.replace(/\n{2,}/g, '\n')) // Remove extra newlines within each comment
+				.join('\n\n'); // Join each comment block with a double newline
+		} else {
+			taskComments = ''; // Default to empty string if no comments
+		}
+
+		console.log(taskComments);
 	}
+
+	async function handleReleaseTask() {
+		// Set the task state to 'Todo'
+		edittaskState = 'Todo';
+
+		try {
+			// Await the updateTask function to ensure it's completed before proceeding
+			await updateTask();
+
+			// Close the edit modal after updating
+			showEditModal = false;
+		} catch (error) {
+			console.error('Error releasing task:', error);
+			// Optionally, handle the error here (e.g., show an alert or message)
+		}
+	}
+
+	function handleUpdateTask() {
+		updateTask();
+	}
+
+	const updateTask = async () => {
+		if (!taskName) {
+			alertError('Please enter a task name.');
+			return;
+		}
+
+		if (!taskPlan) {
+			taskPlan = null; // Set taskPlan to null if not provided
+		}
+
+		// Check if there are new task notes to append
+		if (taskNotes) {
+			// Get the current date
+			const now = new Date();
+			const day = String(now.getDate()).padStart(2, '0'); // Pad day if needed
+			const month = String(now.getMonth() + 1).padStart(2, '0'); // Pad month if needed
+			const year = now.getFullYear(); // Full year
+
+			// Format the date to DD/MM/YYYY
+			const formattedDate = `${day}/${month}/${year}`;
+
+			// Append the new task notes to the taskComments
+			taskNotes = `Commented By: ${username} \nDated On: ${formattedDate} \n${taskNotes}`;
+		}
+
+		try {
+			// Send updated task data to the server
+			const response = await axios.put('http://localhost:5000/api/users/editTask', {
+				taskId: editabletaskId,
+				taskPlan,
+				taskName,
+				taskDescription,
+				taskNotes,
+				taskState: edittaskState,
+				taskOwner
+			});
+
+			// If the response is successful
+			if (response.status === 200) {
+				alertSuccess('Task updated successfully!');
+
+				// Append the new taskNotes to taskComments if successful
+				taskComments += `\n\n${taskNotes}`; // Concatenate new notes to existing comments
+
+				// Clear taskNotes after the update
+				taskNotes = '';
+
+				// Fetch updated tasks
+				fetchTasks();
+			} else {
+				alertError('Failed to update task. Please try again.');
+			}
+		} catch (error) {
+			// Error handling for various response statuses
+			if (error.response && error.response.status === 404) {
+				alertError('User not logged in.');
+			} else if (error.response && error.response.status === 401) {
+				alertError('Unauthorized access.');
+				redirectToLogin();
+			} else if (error.response && error.response.status === 409) {
+				alertError('Task already exists. Please choose a different name.');
+			} else if (error.response && error.response.status === 500) {
+				alertError('Server Error. Please try again.');
+			}
+			console.log('Error updating task:', error);
+		}
+	};
 </script>
 
 <body style="margin:0;padding:0">
@@ -413,9 +534,9 @@
 							<label for="taskState">Task State:</label>
 							<input
 								class="task-input-readonly"
-								id="taskState"
+								id="edittaskState"
 								type="text"
-								bind:value={taskState}
+								bind:value={edittaskState}
 								placeholder="Task State"
 								readonly
 							/>
@@ -466,7 +587,8 @@
 					<div class="form-group">
 						<div class="notes-column">
 							<label for="notes">Notes:</label>
-							<span class="notes-label">{taskNotes}</span>
+							<!-- Use a div instead of span and apply the white-space CSS -->
+							<div class="notes-label" style="white-space: pre-line;">{taskComments}</div>
 							<textarea
 								class="notes-input"
 								id="comments"
@@ -478,9 +600,25 @@
 				</div>
 			</div>
 			<div class="modal-actions" style="margin-top: 20px;">
-				<button style="background-color: green;" on:click>Release Task</button>
-				<button on:click>Save Changes</button>
-				<button on:click={handleCloseTask}>Cancel</button>
+				{#if edittaskState === 'Closed'}
+					<button on:click={handleCloseTask}>Close</button>
+				{:else if edittaskState === 'Open'}
+					<button style="background-color: green;" on:click={handleReleaseTask}>Release Task</button
+					>
+				{:else if edittaskState === 'Todo'}
+					<button style="background-color: green;" on:click>Take On</button>
+				{:else if edittaskState === 'Doing'}
+					<button style="background-color: green;" on:click>To Review</button>
+					<button style="background-color: red;" on:click>Forfeit Task</button>
+				{:else if edittaskState === 'Done'}
+					<button style="background-color: green;" on:click>Approve Task</button>
+					<button style="background-color: red;" on:click>Reject Task</button>
+				{/if}
+
+				{#if edittaskState !== 'Closed'}
+					<button on:click={handleUpdateTask}>Save Changes</button>
+					<button on:click={handleCloseTask}>Cancel</button>
+				{/if}
 			</div>
 		</div>
 	{/if}
@@ -637,6 +775,11 @@
 		flex: 1;
 	}
 	.notes-input {
+		width: 100%;
+		padding: 0.5em;
+		border: 1px solid #ccc;
+		border-radius: 4px;
+		background-color: #c9c9c9;
 		flex: 2;
 	}
 

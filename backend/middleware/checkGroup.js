@@ -1,18 +1,6 @@
 const db = require("../models/db");
 const catchAsyncErrors = require("./catchAsyncErrors");
 
-const queryAsync = (query, params) => {
-  return new Promise((resolve, reject) => {
-    db.query(query, params, (err, results) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(results);
-      }
-    });
-  });
-};
-
 const checkGroup = (username, groupname) =>
   catchAsyncErrors(async (req, res, next) => {
     if (!username || !groupname) {
@@ -24,22 +12,21 @@ const checkGroup = (username, groupname) =>
     const groupPattern = `%${groupname}%`;
 
     try {
-      const results = await queryAsync(
+      const [results] = await db.query(
         "SELECT * FROM usergroup WHERE username = ? AND user_group LIKE ?",
         [username, groupPattern]
       );
 
       if (results.length > 0) {
-        // User is in the group, proceed with the next middleware
-        return next();
+        return next(); // User is in the group, proceed
       } else {
-        // User is not in the group, redirect to /login
-        console.log("User is not in the group");
-        return res.status(401).json({ message: "Access Denied." });
+        return res.status(403).json({
+          message: "Access Denied: User is not in the required group.",
+        });
       }
     } catch (err) {
       console.error("Error checking user group:", err);
-      res.status(500).json({ error: err.message });
+      return res.status(500).json({ error: "Internal server error." });
     }
   });
 
