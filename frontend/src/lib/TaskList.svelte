@@ -7,11 +7,159 @@
 	export let selectedAppDetails;
 	export let username;
 
-	console.log('accessing task list details of the selected', selectedAppDetails);
-
 	let appAcronym = selectedAppDetails.App_Acronym;
 	let appRNumber = selectedAppDetails.App_Rnumber;
 	$: taskId = `${appAcronym}_${appRNumber}`;
+
+	let permitCreate = selectedAppDetails.App_permit_Create;
+	let permitOpen = selectedAppDetails.App_permit_Open;
+	let permitToDo = selectedAppDetails.App_permit_toDoList;
+	let permitDoing = selectedAppDetails.App_permit_Doing;
+	let permitDone = selectedAppDetails.App_permit_Done;
+
+	let permitCreateGroup = false;
+	let permitOpenGroup = false;
+	let permitToDoGroup = false;
+	let permitDoingGroup = false;
+	let permitDoneGroup = false;
+
+	const checkpermitCreate = async () => {
+		try {
+			const response = await axios.post(
+				'http://localhost:5000/api/users/checkisInGroup',
+				{
+					username,
+					userGroup: permitCreate
+				},
+				{
+					withCredentials: true
+				}
+			);
+
+			permitCreateGroup = response.data.isInGroup;
+		} catch (error) {
+			if (
+				error.response.status === 404 ||
+				error.response.status === 401 ||
+				error.response.status === 403
+			) {
+				permitCreateGroup = false;
+			} else {
+				// Log other errors (e.g., server issues or unexpected responses)
+				console.error('Error checking user group:', error);
+			}
+		}
+	};
+	const checkpermitOpen = async () => {
+		try {
+			const response = await axios.post(
+				'http://localhost:5000/api/users/checkisInGroup',
+				{
+					username,
+					userGroup: permitOpen
+				},
+				{
+					withCredentials: true
+				}
+			);
+
+			permitOpenGroup = response.data.isInGroup;
+		} catch (error) {
+			if (
+				error.response.status === 404 ||
+				error.response.status === 401 ||
+				error.response.status === 403
+			) {
+				permitOpenGroup = false;
+			} else {
+				// Log other errors (e.g., server issues or unexpected responses)
+				console.error('Error checking user group:', error);
+			}
+		}
+	};
+	const checkpermitToDo = async () => {
+		try {
+			const response = await axios.post(
+				'http://localhost:5000/api/users/checkisInGroup',
+				{
+					username,
+					userGroup: permitToDo
+				},
+				{
+					withCredentials: true
+				}
+			);
+
+			permitToDoGroup = response.data.isInGroup;
+		} catch (error) {
+			if (
+				error.response.status === 404 ||
+				error.response.status === 401 ||
+				error.response.status === 403
+			) {
+				permitToDoGroup = false;
+			} else {
+				// Log other errors (e.g., server issues or unexpected responses)
+				console.error('Error checking user group:', error);
+			}
+		}
+	};
+
+	const checkpermitDoing = async () => {
+		try {
+			const response = await axios.post(
+				'http://localhost:5000/api/users/checkisInGroup',
+				{
+					username,
+					userGroup: permitDoing
+				},
+				{
+					withCredentials: true
+				}
+			);
+
+			permitDoingGroup = response.data.isInGroup;
+		} catch (error) {
+			if (
+				error.response.status === 404 ||
+				error.response.status === 401 ||
+				error.response.status === 403
+			) {
+				permitDoingGroup = false;
+			} else {
+				// Log other errors (e.g., server issues or unexpected responses)
+				console.error('Error checking user group:', error);
+			}
+		}
+	};
+
+	const checkpermitDone = async () => {
+		try {
+			const response = await axios.post(
+				'http://localhost:5000/api/users/checkisInGroup',
+				{
+					username,
+					userGroup: permitDone
+				},
+				{
+					withCredentials: true
+				}
+			);
+
+			permitDoneGroup = response.data.isInGroup;
+		} catch (error) {
+			if (
+				error.response.status === 404 ||
+				error.response.status === 401 ||
+				error.response.status === 403
+			) {
+				permitDoneGroup = false;
+			} else {
+				// Log other errors (e.g., server issues or unexpected responses)
+				console.error('Error checking user group:', error);
+			}
+		}
+	};
 
 	let tasks = {
 		open: [],
@@ -21,13 +169,23 @@
 		closed: []
 	};
 
+	onMount(async () => {
+		fetchPlans();
+		fetchTasks();
+		await checkpermitCreate();
+		await checkpermitOpen();
+		await checkpermitToDo();
+		await checkpermitDoing();
+		await checkpermitDone();
+	});
+
 	// Fetch tasks based on appAcronym
 	async function fetchTasks() {
 		try {
 			const response = await axios.post(
 				`http://localhost:5000/api/users/getTasks`,
-				{ taskappAcronym: appAcronym }
-				// { withCredentials: true }  // Uncomment if necessary
+				{ taskappAcronym: appAcronym },
+				{ withCredentials: true }
 			);
 			const fetchedTasks = response.data;
 
@@ -58,46 +216,36 @@
 						break;
 				}
 			});
-
-			console.log('Tasks fetched:', tasks);
 		} catch (error) {
 			console.error('Error fetching tasks:', error);
 		}
 	}
 
-	let plans = [];
+	export let plans = [];
+
 	// get all plans
 	async function fetchPlans() {
 		try {
 			const response = await axios.post(
 				'http://localhost:5000/api/users/getPlans',
-				{ planappAcronym: appAcronym }
-				// { withCredentials: true }  // Uncomment if necessary
+				{ planappAcronym: appAcronym },
+				{ withCredentials: true }
 			);
 			plans = response.data; // Update the plans array
-			console.log(plans); // Log the plans for debugging
 		} catch (error) {
 			console.error('Error fetching plans:', error);
 		}
 	}
-
 	// Function to get the plan color based on the plan name
 	function getPlanColor(planName) {
 		const plan = plans.find((p) => p.Plan_MVP_name === planName);
 
 		if (plan) {
-			console.log(`Plan Name: ${plan.Plan_MVP_name}, Plan Color: ${plan.Plan_color}`); // Corrected property name
 			return plan.Plan_color; // Return the correct plan color
 		} else {
-			console.log(`Plan Name: ${planName} not found.`);
 			return '#ffffff'; // Default color if the plan is not found
 		}
 	}
-
-	onMount(() => {
-		fetchPlans();
-		fetchTasks();
-	});
 
 	function handleCreateTask() {
 		showCreateModal = true;
@@ -109,6 +257,7 @@
 		taskName = '';
 		taskNotes = '';
 		taskPlan = '';
+		taskDescription = '';
 	}
 
 	const createTask = async () => {
@@ -144,24 +293,27 @@
 		const epochCreateDate = Math.floor(new Date(taskcreateDate).getTime() / 1000);
 
 		try {
-			const response = await axios.post('http://localhost:5000/api/users/createTask', {
-				taskId,
-				taskPlan,
-				taskappAcronym: appAcronym,
-				taskName,
-				taskDescription,
-				taskNotes,
-				taskState,
-				taskCreator,
-				taskOwner,
-				taskcreateDate: epochCreateDate
-			});
+			const response = await axios.post(
+				'http://localhost:5000/api/users/createTask',
+				{
+					taskId,
+					taskPlan,
+					taskappAcronym: appAcronym,
+					taskName,
+					taskDescription,
+					taskNotes,
+					taskState,
+					taskCreator,
+					taskOwner,
+					taskcreateDate: epochCreateDate
+				},
+				{ withCredentials: true }
+			);
 			if (response.status === 200) {
 				alertSuccess('Task created successfully!');
 				handleCloseTask();
 				fetchTasks();
 				appRNumber += 1; // increment appRNumber correctly
-				console.log('new r number:', appRNumber);
 			} else {
 				alertError('Failed to create task. Please try again.');
 			}
@@ -224,8 +376,6 @@
 		} else {
 			taskComments = ''; // Default to empty string if no comments
 		}
-
-		console.log(taskComments);
 	}
 
 	async function handleReleaseTask() {
@@ -263,8 +413,7 @@
 			// Await the updateTask function to ensure it's completed before proceeding
 			await updateTask();
 
-			// Close the edit modal after updating
-			showEditModal = false;
+			handleCloseTask();
 		} catch (error) {
 			console.error('Error releasing task:', error);
 			// Optionally, handle the error here (e.g., show an alert or message)
@@ -306,8 +455,7 @@
 			// Await the updateTask function to ensure it's completed before proceeding
 			await updateTask();
 
-			// Close the edit modal after updating
-			showEditModal = false;
+			handleCloseTask();
 		} catch (error) {
 			console.error('Error releasing task:', error);
 			// Optionally, handle the error here (e.g., show an alert or message)
@@ -349,8 +497,7 @@
 			// Await the updateTask function to ensure it's completed before proceeding
 			await updateTask();
 
-			// Close the edit modal after updating
-			showEditModal = false;
+			handleCloseTask();
 		} catch (error) {
 			console.error('Error releasing task:', error);
 			// Optionally, handle the error here (e.g., show an alert or message)
@@ -392,8 +539,7 @@
 			// Await the updateTask function to ensure it's completed before proceeding
 			await updateTask();
 
-			// Close the edit modal after updating
-			showEditModal = false;
+			handleCloseTask();
 		} catch (error) {
 			console.error('Error releasing task:', error);
 			// Optionally, handle the error here (e.g., show an alert or message)
@@ -435,8 +581,7 @@
 			// Await the updateTask function to ensure it's completed before proceeding
 			await updateTask();
 
-			// Close the edit modal after updating
-			showEditModal = false;
+			handleCloseTask();
 		} catch (error) {
 			console.error('Error releasing task:', error);
 			// Optionally, handle the error here (e.g., show an alert or message)
@@ -445,7 +590,7 @@
 
 	async function handleRejectTask() {
 		// Set the task state to 'Todo'
-		edittaskState = 'Done';
+		edittaskState = 'Doing';
 
 		// Get the current date and time
 		const now = new Date();
@@ -478,8 +623,7 @@
 			// Await the updateTask function to ensure it's completed before proceeding
 			await updateTask();
 
-			// Close the edit modal after updating
-			showEditModal = false;
+			handleCloseTask();
 		} catch (error) {
 			console.error('Error releasing task:', error);
 			// Optionally, handle the error here (e.g., show an alert or message)
@@ -524,15 +668,19 @@
 
 		try {
 			// Send updated task data to the server
-			const response = await axios.put('http://localhost:5000/api/users/editTask', {
-				taskId: editabletaskId,
-				taskPlan,
-				taskName,
-				taskDescription,
-				taskNotes,
-				taskState: edittaskState,
-				taskOwner
-			});
+			const response = await axios.put(
+				'http://localhost:5000/api/users/editTask',
+				{
+					taskId: editabletaskId,
+					taskPlan,
+					taskName,
+					taskDescription,
+					taskNotes,
+					taskState: edittaskState,
+					taskOwner
+				},
+				{ withCredentials: true }
+			);
 
 			// If the response is successful
 			if (response.status === 200) {
@@ -573,7 +721,7 @@
 			<div class="column">
 				<div class="column-header">
 					<h2>{state.charAt(0).toUpperCase() + state.slice(1)}</h2>
-					{#if state === 'open'}
+					{#if state === 'open' && permitCreateGroup}
 						<button class="create-task-btn" on:click={handleCreateTask}>+ CREATE TASK</button>
 					{/if}
 				</div>
@@ -630,9 +778,10 @@
 						<div class="task-row">
 							<label for="taskDescription">Task Description:</label>
 							<textarea
-								class="task-input"
+								class="inputdescription"
 								id="taskDescription"
 								bind:value={taskDescription}
+								style="border:1px solid #000"
 								placeholder="Description"
 							></textarea>
 						</div>
@@ -655,52 +804,39 @@
 					<div class="form-group">
 						<div class="task-row">
 							<label for="taskState">Task State:</label>
-							<input
-								class="task-input-readonly"
-								id="taskState"
-								type="text"
-								bind:value={taskState}
-								placeholder="Task State"
-								readonly
-							/>
+							<span class="task-input" id="taskState" type="text" placeholder="Task State" readonly
+								>{taskState}</span
+							>
 						</div>
 					</div>
 					<div class="form-group">
 						<div class="task-row">
 							<label for="taskCreator">Task Creator:</label>
-							<input
-								class="task-input-readonly"
+							<span
+								class="task-input"
 								id="taskCreator"
 								type="text"
-								bind:value={taskCreator}
 								placeholder="Task Creator"
 								readonly
-							/>
+							>
+								{taskCreator}
+							</span>
 						</div>
 					</div>
 					<div class="form-group">
 						<div class="task-row">
 							<label for="taskOwner">Task Owner:</label>
-							<input
-								class="task-input-readonly"
-								id="taskOwner"
-								type="text"
-								bind:value={taskOwner}
-								placeholder="Task Owner"
-								readonly
-							/>
+							<span class="task-input" id="taskOwner" type="text" placeholder="Task Owner" readonly
+								>{taskOwner}</span
+							>
 						</div>
 					</div>
 					<div class="form-group">
 						<div class="task-row">
 							<label for="taskcreateDate">Task Create Date:</label>
-							<input
-								class="task-input-readonly"
-								id="taskcreateDate"
-								type="date"
-								bind:value={taskcreateDate}
-								readonly
-							/>
+							<span class="task-input" id="taskcreateDate" type="date" readonly
+								>{taskcreateDate}</span
+							>
 						</div>
 					</div>
 				</div>
@@ -708,16 +844,15 @@
 				<!-- Right Side -->
 				<div class="right-side" style="flex: 1; padding: 20px;">
 					<div class="form-group">
-						<div class="notes-column">
-							<label for="notes">Notes:</label>
-							<span class="notes-label">{taskNotes}</span>
-							<textarea
-								class="notes-input"
-								id="comments"
-								bind:value={taskNotes}
-								placeholder="Comments"
-							></textarea>
-						</div>
+						<label for="notes">Notes:</label>
+						<span class="notes-label">{taskNotes}</span>
+						<textarea
+							class="inputdescription"
+							id="comments"
+							bind:value={taskNotes}
+							style="border:1px solid #000"
+							placeholder="Comments"
+						></textarea>
 					</div>
 				</div>
 			</div>
@@ -754,10 +889,11 @@
 								type="text"
 								bind:value={taskName}
 								placeholder="Task Name"
-								readonly={edittaskState === 'Closed' ||
+								disabled={edittaskState === 'Closed' ||
 									edittaskState === 'Todo' ||
 									edittaskState === 'Doing' ||
-									edittaskState === 'Done'}
+									edittaskState === 'Done' ||
+									(edittaskState === 'Open' && !permitOpenGroup)}
 							/>
 						</div>
 					</div>
@@ -765,13 +901,16 @@
 						<div class="task-row">
 							<label for="taskDescription">Task Description:</label>
 							<textarea
-								class="task-input"
+								class="inputdescription"
 								id="taskDescription"
 								bind:value={taskDescription}
 								placeholder="Description"
-								readonly={edittaskState === 'Closed' ||
+								style="border:1px solid #000"
+								disabled={edittaskState === 'Closed' ||
 									edittaskState === 'Todo' ||
-									edittaskState === 'Doing'}
+									edittaskState === 'Doing' ||
+									edittaskState === 'Done' ||
+									(edittaskState === 'Open' && !permitOpenGroup)}
 							></textarea>
 						</div>
 					</div>
@@ -784,7 +923,8 @@
 								bind:value={taskPlan}
 								disabled={edittaskState === 'Closed' ||
 									edittaskState === 'Todo' ||
-									edittaskState === 'Doing'}
+									edittaskState === 'Doing' ||
+									(edittaskState === 'Open' && !permitOpenGroup)}
 							>
 								<option value="">Plan Name</option>
 								{#if plans.length !== 0}
@@ -799,52 +939,41 @@
 					<div class="form-group">
 						<div class="task-row">
 							<label for="taskState">Task State:</label>
-							<input
-								class="task-input-readonly"
+							<span
+								class="task-input"
 								id="edittaskState"
 								type="text"
-								bind:value={edittaskState}
 								placeholder="Task State"
-								readonly
-							/>
+								readonly>{edittaskState}</span
+							>
 						</div>
 					</div>
 					<div class="form-group">
 						<div class="task-row">
 							<label for="taskCreator">Task Creator:</label>
-							<input
-								class="task-input-readonly"
+							<span
+								class="task-input"
 								id="taskCreator"
 								type="text"
-								bind:value={taskCreator}
 								placeholder="Task Creator"
-								readonly
-							/>
+								readonly>{taskCreator}</span
+							>
 						</div>
 					</div>
 					<div class="form-group">
 						<div class="task-row">
 							<label for="taskOwner">Task Owner:</label>
-							<input
-								class="task-input-readonly"
-								id="taskOwner"
-								type="text"
-								bind:value={taskOwner}
-								placeholder="Task Owner"
-								readonly
-							/>
+							<span class="task-input" id="taskOwner" type="text" placeholder="Task Owner" readonly
+								>{taskOwner}</span
+							>
 						</div>
 					</div>
 					<div class="form-group">
 						<div class="task-row">
 							<label for="taskcreateDate">Task Create Date:</label>
-							<input
-								class="task-input-readonly"
-								id="taskcreateDate"
-								type="date"
-								bind:value={taskcreateDate}
-								readonly
-							/>
+							<span class="task-input" id="taskcreateDate" type="date" readonly
+								>{taskcreateDate}</span
+							>
 						</div>
 					</div>
 				</div>
@@ -852,40 +981,47 @@
 				<!-- Right Side -->
 				<div class="right-side" style="flex: 1; padding: 20px;">
 					<div class="form-group">
-						<div class="notes-column">
-							<label for="notes">Notes:</label>
-							<!-- Use a div instead of span and apply the white-space CSS -->
-							<div class="notes-label" style="white-space: pre-line;">{taskComments}</div>
-							<textarea
-								class="notes-input"
-								id="comments"
-								bind:value={taskNotes}
-								placeholder="Comments"
-								readonly={edittaskState === 'Closed'}
-							></textarea>
-						</div>
+						<label for="notes">Notes:</label>
+						<!-- Use a div instead of span and apply the white-space CSS -->
+						<div class="notes-label" style="white-space: pre-line;">{taskComments}</div>
+						<textarea
+							class="inputdescription"
+							id="comments"
+							bind:value={taskNotes}
+							placeholder="Comments"
+							style="border:1px solid #000"
+							disabled={edittaskState === 'Closed' ||
+								(edittaskState === 'Open' && !permitOpenGroup) ||
+								(edittaskState === 'Todo' && !permitToDoGroup) ||
+								(edittaskState === 'Doing' && !permitDoingGroup) ||
+								(edittaskState === 'Done' && !permitDoneGroup)}
+						></textarea>
 					</div>
 				</div>
 			</div>
+
 			<div class="modal-actions" style="margin-top: 20px;">
 				{#if edittaskState === 'Closed'}
 					<button on:click={handleCloseTask}>Close</button>
-				{:else if edittaskState === 'Open'}
+				{:else if edittaskState === 'Open' && permitOpenGroup}
 					<button style="background-color: green;" on:click={handleReleaseTask}>Release Task</button
 					>
-				{:else if edittaskState === 'Todo'}
+					<button on:click={handleUpdateTask}>Save Changes</button>
+				{:else if edittaskState === 'Todo' && permitToDoGroup}
 					<button style="background-color: green;" on:click={handleTakeOnTask}>Take On</button>
-				{:else if edittaskState === 'Doing'}
+					<button on:click={handleUpdateTask}>Save Changes</button>
+				{:else if edittaskState === 'Doing' && permitDoingGroup}
 					<button style="background-color: green;" on:click={handleToReviewTask}>To Review</button>
 					<button style="background-color: red;" on:click={handleForfeitTask}>Forfeit Task</button>
-				{:else if edittaskState === 'Done'}
+					<button on:click={handleUpdateTask}>Save Changes</button>
+				{:else if edittaskState === 'Done' && permitDoneGroup}
 					<button style="background-color: green;" on:click={handleApproveTask}>Approve Task</button
 					>
 					<button style="background-color: red;" on:click={handleRejectTask}>Reject Task</button>
+					<button on:click={handleUpdateTask}>Save Changes</button>
 				{/if}
 
 				{#if edittaskState !== 'Closed'}
-					<button on:click={handleUpdateTask}>Save Changes</button>
 					<button on:click={handleCloseTask}>Cancel</button>
 				{/if}
 			</div>
@@ -934,7 +1070,7 @@
 		left: 50%;
 		transform: translate(-50%, -50%);
 		width: 70%; /* Decrease width to 60% of the viewport */
-		max-width: 70%; /* Maximum width for the modal */
+		max-width: 100%; /* Maximum width for the modal */
 		max-height: 95%;
 		background-color: white;
 		border-radius: 8px;
@@ -984,15 +1120,8 @@
 	.task-input {
 		flex: 2;
 	}
-	.task-input-readonly {
-		cursor: not-allowed; /* Change cursor to indicate read-only */
-		background-color: #fff; /* Optional: Change background to indicate read-only */
-		border: none; /* Remove border for a cleaner look */
-		flex: 2;
-	}
 
 	input[type='text'],
-	input[type='date'],
 	textarea {
 		width: 100%;
 		padding: 8px; /* Reduce padding inside inputs */
@@ -1006,18 +1135,13 @@
 		align-items: center; /* Center align items vertically */
 	}
 
-	.notes-column {
-		display: flex; /* Flexbox for consistent layout */
-		flex-direction: column; /* Stack elements vertically */
-	}
-
 	textarea {
 		width: 100%; /* Ensure textarea fills the available width */
 		padding: 8px; /* Adjust padding for better aesthetics */
 		border: 1px solid #ccc;
 		border-radius: 4px;
 		box-sizing: border-box;
-		resize: vertical; /* Allow vertical resizing only */
+		resize: vertical;
 		height: 60px; /* Set a default height */
 	}
 
@@ -1042,14 +1166,6 @@
 	}
 	.notes-label {
 		flex: 1;
-	}
-	.notes-input {
-		width: 100%;
-		padding: 0.5em;
-		border: 1px solid #ccc;
-		border-radius: 4px;
-		background-color: #c9c9c9;
-		flex: 2;
 	}
 
 	.task-card {
@@ -1100,11 +1216,23 @@
 		display: inline-flex;
 	}
 
+	input[disabled],
+	textarea[disabled],
 	select[disabled] {
 		color: black; /* Change text color to black */
 		font-weight: bolder;
 		background-color: #fff; /* Light background for better contrast */
 		border: none;
 		cursor: not-allowed; /* Change cursor to indicate it's disabled */
+	}
+
+	.inputdescription {
+		width: 100%;
+		height: 100px;
+		padding: 0.5em;
+		border: 1px solid #ccc;
+		border-radius: 4px;
+		background-color: #c9c9c9;
+		flex: 2;
 	}
 </style>

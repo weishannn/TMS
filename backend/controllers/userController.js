@@ -32,25 +32,24 @@ exports.checkAdmin = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
-// //for A2
-// exports.checkisInGroup = catchAsyncErrors(async (req, res) => {
-//   const { username, userGroup } = req.body;
+exports.checkisInGroup = catchAsyncErrors(async (req, res) => {
+  const { username, userGroup } = req.body;
 
-//   if (!username || !userGroup) {
-//     return res
-//       .status(400)
-//       .json({ error: "Username and Groupname is required" });
-//   }
+  if (!username || !userGroup) {
+    return res
+      .status(400)
+      .json({ error: "Username and Groupname is required" });
+  }
 
-//   try {
-//     checkGroup(username, userGroup)(req, res, () => {
-//       res.status(200).json({ isInGroup: true });
-//     });
-//   } catch (err) {
-//     console.error("Error checking group status:", err);
-//     res.status(500).json({ error: "Internal Server Error" });
-//   }
-// });
+  try {
+    checkGroup(username, userGroup)(req, res, () => {
+      res.status(200).json({ isInGroup: true });
+    });
+  } catch (err) {
+    console.error("Error checking group status:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 
 //PUT >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 // Update user own profile

@@ -11,12 +11,9 @@
 	export let selectedAppDetails;
 	export let inTMS;
 	export let username;
+	export let isInGroupPM;
 
 	let appAcronym = selectedAppDetails.App_Acronym;
-
-	console.log('selectedApp in tms', selectedAppDetails);
-	console.log('inTMS', inTMS);
-	console.log('appAcronym', appAcronym);
 
 	// Redirect to login page
 	const redirectToLogin = () => {
@@ -28,8 +25,12 @@
 	}
 
 	async function handleSubmitPlan() {
-		if (!planName || !planappAcronym || !planStartDate || !planEndDate || !planColor) {
+		if (!planName || !planappAcronym || !planStartDate || !planEndDate) {
 			alertError('Please fill in all fields.');
+			return;
+		}
+		if (!planColor) {
+			alertError('Please select a color.');
 			return;
 		}
 
@@ -37,19 +38,22 @@
 		const planStartDateEpoch = Math.floor(new Date(planStartDate).getTime() / 1000);
 		const planEndDateEpoch = Math.floor(new Date(planEndDate).getTime() / 1000);
 
-		console.log(planName, planappAcronym, planStartDateEpoch, planEndDateEpoch, planColor);
-
 		try {
-			const response = await axios.post('http://localhost:5000/api/users/createPlan', {
-				planName,
-				planappAcronym,
-				planStartDate: planStartDateEpoch,
-				planEndDate: planEndDateEpoch,
-				planColor
-			});
+			const response = await axios.post(
+				'http://localhost:5000/api/users/createPlan',
+				{
+					planName,
+					planappAcronym,
+					planStartDate: planStartDateEpoch,
+					planEndDate: planEndDateEpoch,
+					planColor
+				},
+				{ withCredentials: true }
+			);
 			if (response.status === 200) {
 				alertSuccess('Plan created successfully!');
 				handleClosePlan();
+				fetchPlans();
 			}
 		} catch (error) {
 			if (error.response && error.response.status === 404) {
@@ -80,6 +84,25 @@
 	let planStartDate = '';
 	let planEndDate = '';
 	let planColor = '';
+
+	let plans = [];
+	// get all plans
+	async function fetchPlans() {
+		try {
+			const response = await axios.post(
+				'http://localhost:5000/api/users/getPlans',
+				{ planappAcronym: appAcronym },
+				{ withCredentials: true }
+			);
+			plans = response.data; // Update the plans array
+		} catch (error) {
+			console.error('Error fetching plans:', error);
+		}
+	}
+
+	onMount(() => {
+		fetchPlans();
+	});
 </script>
 
 <body style="margin:0;padding:0">
@@ -89,7 +112,9 @@
 		<div class="container">
 			<div class="content">
 				<h1>Task Management Board</h1>
-				<button on:click={handleCreatePlan}>+ CREATE PLAN</button>
+				{#if isInGroupPM}
+					<button on:click={handleCreatePlan}>+ CREATE PLAN</button>
+				{/if}
 			</div>
 		</div>
 	{:else}
@@ -129,7 +154,7 @@
 		</div>
 	{/if}
 
-	<TaskList {selectedAppDetails} {username} />
+	<TaskList {selectedAppDetails} {username} {plans} />
 </body>
 
 <style>
@@ -204,7 +229,7 @@
 
 	.form-group label {
 		margin-right: 1em;
-		flex: 1;
+		flex: 0.5;
 		white-space: nowrap;
 	}
 

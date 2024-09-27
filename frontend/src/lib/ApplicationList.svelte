@@ -10,6 +10,7 @@
 	export let applications = [];
 	export let availableGroups = [];
 	export let fetchapplications;
+	export let isInGroupPL;
 	let showEditModal = false;
 	let appAcronym = '';
 	let appRNumber = '';
@@ -35,18 +36,22 @@
 		const epochEndDate = Math.floor(new Date(appEndDate).getTime() / 1000);
 
 		try {
-			const response = await axios.put('http://localhost:5000/api/users/editApp', {
-				appAcronym,
-				appDescription,
-				appRNumber,
-				appStartDate: epochStartDate,
-				appEndDate: epochEndDate,
-				appPermitCreate,
-				appPermitOpen,
-				appPermitToDo,
-				appPermitDoing,
-				appPermitDone
-			});
+			const response = await axios.put(
+				'http://localhost:5000/api/users/editApp',
+				{
+					appAcronym,
+					appDescription,
+					appRNumber,
+					appStartDate: epochStartDate,
+					appEndDate: epochEndDate,
+					appPermitCreate,
+					appPermitOpen,
+					appPermitToDo,
+					appPermitDoing,
+					appPermitDone
+				},
+				{ withCredentials: true }
+			);
 
 			if (response.status === 200) {
 				alertSuccess('Application created successfully!');
@@ -140,31 +145,33 @@
 					aria-label={`View application: ${app.App_Acronym}`}
 				>
 					<h3>App Acronym: <span>{app.App_Acronym}</span></h3>
-					<p>
+					<p class="app-description">
 						<strong>App Description:</strong>
 						{app.App_Description}
 					</p>
 					<p><strong>Start Date:</strong> {app.App_startDate}</p>
 					<p><strong>End Date:</strong> {app.App_endDate}</p>
-					<button
-						class="edit-btn"
-						on:click={(event) =>
-							handleEditApp(
-								app.App_Acronym,
-								app.App_Rnumber,
-								app.App_Description,
-								app.App_startDate,
-								app.App_endDate,
-								app.App_permit_Create,
-								app.App_permit_Open,
-								app.App_permit_toDoList,
-								app.App_permit_Doing,
-								app.App_permit_Done,
-								event
-							)}
-					>
-						<FaEdit />
-					</button>
+					{#if isInGroupPL}
+						<button
+							class="edit-btn"
+							on:click={(event) =>
+								handleEditApp(
+									app.App_Acronym,
+									app.App_Rnumber,
+									app.App_Description,
+									app.App_startDate,
+									app.App_endDate,
+									app.App_permit_Create,
+									app.App_permit_Open,
+									app.App_permit_toDoList,
+									app.App_permit_Doing,
+									app.App_permit_Done,
+									event
+								)}
+						>
+							<FaEdit />
+						</button>
+					{/if}
 				</button>
 			</div>
 		{/each}
@@ -281,11 +288,14 @@
 	.applications {
 		display: flex;
 		gap: 20px;
-		justify-content: center;
-		align-items: center;
 		flex-wrap: wrap;
 		padding: 20px;
 		flex-direction: row;
+	}
+
+	.app-description {
+		max-height: 150px;
+		overflow-y: auto;
 	}
 
 	.app-card {
@@ -374,7 +384,9 @@
 		border-radius: 8px;
 		width: 700px;
 		max-width: 100%;
+		max-height: 90%;
 		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+		overflow-y: auto;
 	}
 
 	.modal-content h2 {
@@ -390,7 +402,7 @@
 
 	.form-group label {
 		margin-right: 1em;
-		flex: 1;
+		flex: 0.5;
 		white-space: nowrap;
 	}
 

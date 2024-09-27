@@ -33,12 +33,11 @@ router.post(
   userController.checkAdmin
 );
 
-//not use yet,,, for A2
-// router.post(
-//   "/checkisInGroup",
-//   authenticateToken,
-//   userController.checkisInGroup
-// );
+router.post(
+  "/checkisInGroup",
+  authenticateToken("active"),
+  userController.checkisInGroup
+);
 
 //admin functions
 //createuser
@@ -96,22 +95,38 @@ router.delete(
 //application
 router.post(
   "/createApp",
-  // authenticateToken("active"),
+  authenticateToken("active", "PL"),
   taskController.createApp
 );
-router.get("/getApps", taskController.getApps); //get all applications
-router.put("/editApp", taskController.editApp);
+router.get("/getApps", authenticateToken("active"), taskController.getApps); //get all applications
+router.put(
+  "/editApp",
+  authenticateToken("active", "PL"),
+  taskController.editApp
+);
 
 //plan
-router.post("/createPlan", taskController.createPlan);
-router.post("/getPlans", taskController.getPlans);
+router.post(
+  "/createPlan",
+  authenticateToken("active", "PM"),
+  taskController.createPlan
+);
+router.post("/getPlans", authenticateToken("active"), taskController.getPlans);
 
 //task
-router.post("/createTask", taskController.createTask);
-router.post("/getTasks", taskController.getTasks);
-router.put("/editTask", taskController.editTask);
+router.post(
+  "/createTask",
+  authenticateToken("active"),
+  taskController.createTask
+);
+router.post("/getTasks", authenticateToken("active"), taskController.getTasks);
+router.put("/editTask", authenticateToken("active"), taskController.editTask);
 
 //to be the most bottom [why????]
-router.get("/:appAcronym", taskController.getAppByAcronym); //get 1 application
+router.get(
+  "/:appAcronym",
+  authenticateToken("active"),
+  taskController.getAppByAcronym
+); //get 1 application
 
 module.exports = router;

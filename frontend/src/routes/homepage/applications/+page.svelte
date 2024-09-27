@@ -7,6 +7,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import axios from 'axios';
 	import { alertError, alertSuccess } from '../../../stores/errorHandle';
+	import { appStore } from '../../../stores/updateStore';
 
 	let showCreateModal = false;
 	let applications = [];
@@ -31,10 +32,68 @@
 		}
 	};
 
+	let isInGroupPL = false;
+	const checkIfPL = async () => {
+		try {
+			const response = await axios.post(
+				'http://localhost:5000/api/users/checkisInGroup',
+				{
+					username,
+					userGroup: 'PL'
+				},
+				{
+					withCredentials: true
+				}
+			);
+
+			isInGroupPL = response.data.isInGroup;
+		} catch (error) {
+			if (
+				error.response.status === 404 ||
+				error.response.status === 401 ||
+				error.response.status === 403
+			) {
+				isInGroupPL = false;
+			} else {
+				// Log other errors (e.g., server issues or unexpected responses)
+				console.error('Error checking user group:', error);
+			}
+		}
+	};
+
+	let isInGroupPM = false;
+	const checkIfPM = async () => {
+		try {
+			const response = await axios.post(
+				'http://localhost:5000/api/users/checkisInGroup',
+				{
+					username,
+					userGroup: 'PM'
+				},
+				{
+					withCredentials: true
+				}
+			);
+
+			isInGroupPM = response.data.isInGroup;
+		} catch (error) {
+			if (
+				error.response.status === 404 ||
+				error.response.status === 401 ||
+				error.response.status === 403
+			) {
+				isInGroupPM = false;
+			} else {
+				// Log other errors (e.g., server issues or unexpected responses)
+				console.error('Error checking user group:', error);
+			}
+		}
+	};
+
 	const fetchapplications = async () => {
 		try {
 			const response = await axios.get('http://localhost:5000/api/users/getApps', {
-				//withCredentials: true // Ensure cookies are sent with the request
+				withCredentials: true
 			});
 			applications = response.data;
 
@@ -116,6 +175,8 @@
 		await fetchGroups();
 		await fetchapplications();
 		await fetchCurrentUser();
+		await checkIfPL();
+		await checkIfPM();
 	});
 
 	const createApp = async () => {
@@ -125,29 +186,47 @@
 			);
 			return;
 		}
+		if (!appPermitCreate) {
+			appPermitCreate = 'PL';
+		}
+		if (!appPermitOpen) {
+			appPermitOpen = null;
+		}
+		if (!appPermitToDo) {
+			appPermitToDo = null;
+		}
+		if (!appPermitDoing) {
+			appPermitDoing = null;
+		}
+		if (!appPermitDone) {
+			appPermitDone = null;
+		}
 
 		// convert date to epoch
 		const epochStartDate = Math.floor(new Date(appStartDate).getTime() / 1000);
 		const epochEndDate = Math.floor(new Date(appEndDate).getTime() / 1000);
 
 		try {
-			const response = await axios.post('http://localhost:5000/api/users/createApp', {
-				appAcronym,
-				appDescription,
-				appRNumber,
-				appStartDate: epochStartDate, // Ensure it's in the expected format
-				appEndDate: epochEndDate, // Ensure it's in the expected format
-				appPermitCreate,
-				appPermitOpen,
-				appPermitToDo,
-				appPermitDoing,
-				appPermitDone
-				//withCredentials: true // Send cookies with the request
-			});
+			const response = await axios.post(
+				'http://localhost:5000/api/users/createApp',
+				{
+					appAcronym,
+					appDescription,
+					appRNumber,
+					appStartDate: epochStartDate, // Ensure it's in the expected format
+					appEndDate: epochEndDate, // Ensure it's in the expected format
+					appPermitCreate,
+					appPermitOpen,
+					appPermitToDo,
+					appPermitDoing,
+					appPermitDone
+				},
+				{ withCredentials: true }
+			);
 
 			if (response.status === 200) {
 				alertSuccess('Application created successfully!');
-				handleCloseApp(); // Close modal and reset form on success
+				await handleCloseApp(); // Close modal and reset form on success
 				await fetchapplications(); // Fetch updated list of applications
 			} else {
 				alertError('Error creating application. Please try again.');
@@ -174,34 +253,35 @@
 	let inTMS = false;
 	let selectedAppDetails = null;
 
-	//function to handle app selection
 	function handleAppSelect(event) {
-		selectedAppDetails = event.detail;
-		console.log('accessing page selectedAppDetails', selectedAppDetails);
-		inTMS = true;
+		const selectedAppDetails = event.detail; // Your selected app details
+
+		// Update the store
+		appStore.set({ selectedAppDetails, username, inTMS: true, isInGroupPL, isInGroupPM });
+
+		// Navigate to TMS component
+		goto('/homepage/applications/TMS');
 	}
 </script>
 
 <body style="margin:0;padding:0">
-	{#if inTMS}
-		<!-- Show the TMS component if an app is selected -->
-		<TMS {selectedAppDetails} {inTMS} {username} />
-	{:else}
-		<HomePageNAV />
-		<div class="container">
-			<div class="content">
-				<h1>Applications</h1>
+	<HomePageNAV />
+	<div class="container">
+		<div class="content">
+			<h1>Applications</h1>
+			{#if isInGroupPL}
 				<button on:click={handleCreateApp}>+ CREATE APP</button>
-			</div>
+			{/if}
 		</div>
-		<!-- Show the ApplicationList only when TMS is not being viewed -->
-		<ApplicationList
-			{availableGroups}
-			{applications}
-			{fetchapplications}
-			on:selectApp={handleAppSelect}
-		/>
-	{/if}
+	</div>
+	<!-- Show the ApplicationList only when TMS is not being viewed -->
+	<ApplicationList
+		{availableGroups}
+		{applications}
+		{fetchapplications}
+		{isInGroupPL}
+		on:selectApp={handleAppSelect}
+	/>
 
 	<!-- CREATE APP MODAL -->
 
@@ -209,6 +289,7 @@
 		<div class="modal">
 			<div class="modal-content">
 				<h2>Create Application</h2>
+
 				<div class="form-group">
 					<label for="appAcronym">App Acronym:</label>
 					<input id="appAcronym" type="text" bind:value={appAcronym} placeholder="Name" />
@@ -217,6 +298,16 @@
 					<label for="appRNumber">App R-Number:</label>
 					<input id="appRNumber" type="number" bind:value={appRNumber} placeholder="Number" />
 				</div>
+
+				<div class="form-group">
+					<label for="appStartDate">Start Date:</label>
+					<input id="appStartDate" type="date" bind:value={appStartDate} placeholder="DD/MM/YY" />
+				</div>
+				<div class="form-group">
+					<label for="appEndDate">End Date:</label>
+					<input id="appEndDate" type="date" bind:value={appEndDate} placeholder="DD/MM/YY" />
+				</div>
+
 				<div class="form-group">
 					<label for="appDescription">App Description: </label>
 					<textarea
@@ -226,14 +317,6 @@
 						bind:value={appDescription}
 						placeholder="Description"
 					/>
-				</div>
-				<div class="form-group">
-					<label for="appStartDate">Start Date:</label>
-					<input id="appStartDate" type="date" bind:value={appStartDate} placeholder="DD/MM/YY" />
-				</div>
-				<div class="form-group">
-					<label for="appEndDate">End Date:</label>
-					<input id="appEndDate" type="date" bind:value={appEndDate} placeholder="DD/MM/YY" />
 				</div>
 
 				<!-- app permit create -->
@@ -358,7 +441,6 @@
 		align-items: center;
 		justify-content: center;
 		z-index: 1000;
-		overflow-y: auto;
 	}
 
 	.modal-content {
@@ -367,7 +449,9 @@
 		border-radius: 8px;
 		width: 700px;
 		max-width: 100%;
+		max-height: 90%;
 		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+		overflow-y: auto;
 	}
 
 	.modal-content h2 {
@@ -383,7 +467,7 @@
 
 	.form-group label {
 		margin-right: 1em;
-		flex: 1;
+		flex: 0.5;
 		white-space: nowrap;
 	}
 
