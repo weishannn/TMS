@@ -6,7 +6,7 @@
 	import { goto } from '$app/navigation';
 	import { onMount, onDestroy } from 'svelte';
 	import axios from 'axios';
-	import { alertError, alertSuccess } from '../../../stores/errorHandle';
+	import { alertError, alertInfo, alertSuccess } from '../../../stores/errorHandle';
 	import { appStore } from '../../../stores/updateStore';
 
 	let showCreateModal = false;
@@ -92,9 +92,13 @@
 
 	const fetchapplications = async () => {
 		try {
-			const response = await axios.get('http://localhost:5000/api/users/getApps', {
-				withCredentials: true
-			});
+			const response = await axios.post(
+				'http://localhost:5000/api/users/getAppsByPermitGroup',
+				{ username },
+				{
+					withCredentials: true
+				}
+			);
 			applications = response.data;
 
 			//convert epoch to date
@@ -106,14 +110,14 @@
 			console.log(applications);
 		} catch (error) {
 			if (error.response && error.response.status === 404) {
-				alertError('User not logged in.');
+				alertInfo('No Application Assigned Yet.');
 			} else if (error.response && error.response.status === 401) {
 				alertError('Unauthorized access.');
 				redirectToLogin();
 			} else if (error.response && error.response.status === 500) {
 				alertError('Server Error. Unable to fetch users. Please try again.');
 			}
-			console.error('Error fetching users:', error);
+			console.error('Error:', error);
 		}
 	};
 
@@ -172,18 +176,39 @@
 	};
 
 	onMount(async () => {
+		await fetchCurrentUser();
 		await fetchGroups();
 		await fetchapplications();
-		await fetchCurrentUser();
 		await checkIfPL();
 		await checkIfPM();
 	});
+
+	function validateAppName(appname) {
+		// Regular expression for validating an email address
+		const appnamePattern = /^[a-zA-Z0-9_]{1,50}$/;
+		return appnamePattern.test(appname);
+	}
+
+	function validateRNumber(rnumber) {
+		const rnumberPattern = /^[1-9]\d*$/;
+		return rnumberPattern.test(rnumber);
+	}
 
 	const createApp = async () => {
 		if (!appAcronym || !appRNumber || !appStartDate || !appEndDate) {
 			alertError(
 				'Please fill in all required fields. (App Acronym, R Number, Start Date, End Date)'
 			);
+			return;
+		}
+		if (!validateAppName(appAcronym)) {
+			alertError(
+				'App Acronym can only have alphanumeric characters and underscores. Max length is 50 characters.'
+			);
+			return;
+		}
+		if (!validateRNumber(appRNumber)) {
+			alertError('R Number must be a positive integer.');
 			return;
 		}
 		if (!appPermitCreate) {

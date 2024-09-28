@@ -24,11 +24,24 @@ exports.createApp = catchAsyncErrors(async (req, res) => {
     appPermitDone,
   } = req.body;
 
+  const appnamePattern = /^[a-zA-Z0-9_]{1,50}$/;
+  const rnumberPattern = /^[1-9]\d*$/;
+
   // Validate required fields
   if (!appAcronym || !appRNumber || !appStartDate || !appEndDate) {
     return res.status(400).json({
       error:
         "Missing fields. App Acronym, R Number, Start Date, End Date are required.",
+    });
+  }
+  if (!appnamePattern.test(appAcronym)) {
+    return res.status(400).json({
+      error: "App Acronym can only contain letters, numbers, and underscores.",
+    });
+  }
+  if (!rnumberPattern.test(appRNumber)) {
+    return res.status(400).json({
+      error: "R Number must be a positive integer.",
     });
   }
 
@@ -102,6 +115,43 @@ exports.getAppByAcronym = catchAsyncErrors(async (req, res) => {
     }
 
     res.json(result[0]); // Return the first result as the application
+  } catch (err) {
+    console.error("Error during application retrieval:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// get by permit group
+exports.getAppsByPermitGroup = catchAsyncErrors(async (req, res) => {
+  const { username } = req.body;
+
+  if (!username) {
+    return res.status(400).json({
+      error: "Username is required.",
+    });
+  }
+
+  try {
+    const [result] = await db.query(
+      `SELECT DISTINCT A.* 
+       FROM application A
+       JOIN usergroup U 
+       ON U.user_group = A.App_permit_Create 
+       OR U.user_group = A.App_permit_Open 
+       OR U.user_group = A.App_permit_toDoList 
+       OR U.user_group = A.App_permit_Doing 
+       OR U.user_group = A.App_permit_Done
+       WHERE U.username = ?`,
+      [username]
+    );
+
+    if (result.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "No applications found for this user." });
+    }
+
+    res.json(result); // Return the result as the application(s)
   } catch (err) {
     console.error("Error during application retrieval:", err);
     return res.status(500).json({ error: err.message });
@@ -184,6 +234,9 @@ exports.createPlan = catchAsyncErrors(async (req, res) => {
   const { planName, planappAcronym, planStartDate, planEndDate, planColor } =
     req.body;
 
+  const plannamePattern =
+    /^[a-zA-Z0-9\s!@#$%^&*()\-_=+{};:'",.<>?/|\\~`[\]]{1,255}$/;
+
   if (
     !planName ||
     !planappAcronym ||
@@ -194,6 +247,13 @@ exports.createPlan = catchAsyncErrors(async (req, res) => {
     return res.status(400).json({
       error:
         "Missing fields. Plan Name, App Acronym, Start Date, End Date, and Color are required.",
+    });
+  }
+
+  if (!plannamePattern.test(planName)) {
+    return res.status(400).json({
+      error:
+        "Plan Name can only contain letters, numbers, spaces, and special characters.",
     });
   }
 
@@ -273,6 +333,9 @@ exports.createTask = catchAsyncErrors(async (req, res) => {
     taskcreateDate,
   } = req.body;
 
+  const tasknamePattern =
+    /^[a-zA-Z0-9\s!@#$%^&*()\-_=+{};:'",.<>?/|\\~`[\]]{1,255}$/;
+
   // Validate required fields
   if (
     !taskId ||
@@ -286,6 +349,13 @@ exports.createTask = catchAsyncErrors(async (req, res) => {
     return res.status(400).json({
       error:
         "Missing fields. Task ID, App Acronym, Name, State, Creator, Owner, and Create Date are required.",
+    });
+  }
+
+  if (!tasknamePattern.test(taskName)) {
+    return res.status(400).json({
+      error:
+        "Task Name can only contain letters, numbers, spaces, and special characters.",
     });
   }
 

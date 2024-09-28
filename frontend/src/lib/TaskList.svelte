@@ -260,9 +260,21 @@
 		taskDescription = '';
 	}
 
+	function validateTaskName(taskname) {
+		// Regular expression for validating an email address
+		const tasknamePattern = /^[a-zA-Z0-9\s!@#$%^&*()\-_=+{};:'",.<>?/|\\~`[\]]{1,255}$/;
+		return tasknamePattern.test(taskname);
+	}
+
 	const createTask = async () => {
 		if (!taskName) {
 			alertError('Please enter a task name.');
+			return;
+		}
+		if (!validateTaskName(taskName)) {
+			alertError(
+				'Task name can only be alphanumeric, including spaces and special characters. Max length is 255 characters.'
+			);
 			return;
 		}
 		if (!taskPlan) {
@@ -391,6 +403,80 @@
 		}
 	}
 
+	let recipientEmail = '';
+
+	async function retrieveEmail() {
+		try {
+			// Await the axios POST request
+			const response = await axios.post(
+				'http://localhost:5000/api/users/getUserEmail',
+				{
+					userGroup: permitDone
+				},
+				{ withCredentials: true }
+			);
+
+			// Check if the response is successful
+			if (response.status === 200 && response.data.email) {
+				recipientEmail = response.data.email; // Access the email field from the response
+				console.log('Email retrieved:', recipientEmail);
+			} else {
+				console.error('Error retrieving email:', response.data);
+				alertError('Error retrieving email.');
+			}
+		} catch (error) {
+			console.error('Error occurred while retrieving email:', error);
+			alertError('Error occurred while retrieving email.');
+		}
+	}
+
+	async function handleTaskFlow() {
+		try {
+			// First, retrieve the email
+			await retrieveEmail();
+
+			// Now, send the email after it's retrieved
+			if (recipientEmail) {
+				await sendEmail();
+			} else {
+				alertError('No email address retrieved, cannot send the email.');
+			}
+		} catch (error) {
+			console.error('Error occurred during task flow:', error);
+		}
+	}
+
+	async function sendEmail() {
+		// Ensure recipientEmail is not empty
+		if (!recipientEmail) {
+			alertError('No Email Address found, Unable to send email.');
+			return;
+		}
+
+		try {
+			// Make a POST request to the email sending API
+			const response = await axios.post(
+				'http://localhost:5000/api/users/send-email',
+				{
+					recipientEmail: recipientEmail
+				},
+				{ withCredentials: true }
+			);
+
+			// Handle the response
+			if (response.status === 200) {
+				console.log('Email sent successfully:', response.data);
+				alertSuccess('Email sent successfully!');
+			} else {
+				console.error('Error sending email:', response.data);
+				alertError('Error sending email.');
+			}
+		} catch (error) {
+			console.error('Error occurred while sending email:', error);
+			alertError('Error occurred while sending email.');
+		}
+	}
+
 	async function handleReleaseTask() {
 		// Set the task state to 'Todo'
 		edittaskState = 'Todo';
@@ -509,8 +595,10 @@
 		try {
 			// Await the updateTask function to ensure it's completed before proceeding
 			await updateTask();
-
 			handleCloseTask();
+
+			// Send an email notification after updating the task
+			await handleTaskFlow(); // Make sure sendEmail is defined and returns a promise
 		} catch (error) {
 			console.error('Error releasing task:', error);
 			// Optionally, handle the error here (e.g., show an alert or message)
@@ -650,6 +738,12 @@
 	const updateTask = async () => {
 		if (!taskName) {
 			alertError('Please enter a task name.');
+			return;
+		}
+		if (!validateTaskName(taskName)) {
+			alertError(
+				'Task name can only be alphanumeric, including spaces and special characters. Max length is 255 characters.'
+			);
 			return;
 		}
 
@@ -923,7 +1017,7 @@
 									edittaskState === 'Todo' ||
 									edittaskState === 'Doing' ||
 									edittaskState === 'Done' ||
-									(edittaskState === 'Open' && !permitOpenGroup)}
+									edittaskState === 'Open'}
 							></textarea>
 						</div>
 					</div>
@@ -937,7 +1031,8 @@
 								disabled={edittaskState === 'Closed' ||
 									edittaskState === 'Todo' ||
 									edittaskState === 'Doing' ||
-									(edittaskState === 'Open' && !permitOpenGroup)}
+									(edittaskState === 'Open' && !permitOpenGroup) ||
+									(edittaskState === 'Done' && !permitDoneGroup)}
 							>
 								<option value="">Plan Name</option>
 								{#if plans.length !== 0}

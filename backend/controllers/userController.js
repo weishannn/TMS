@@ -339,6 +339,36 @@ exports.getCurrentUser = catchAsyncErrors(async (req, res) => {
   }
 });
 
+exports.getUserEmail = catchAsyncErrors(async (req, res) => {
+  const { userGroup } = req.body;
+
+  // Check if userGroup is provided
+  if (!userGroup) {
+    return res.status(400).json({ error: "Groupname is required" });
+  }
+
+  const query = `
+    SELECT email 
+    FROM accounts 
+    JOIN usergroup ON accounts.username = usergroup.username 
+    WHERE user_group = ?`;
+
+  try {
+    const [results] = await db.query(query, [userGroup]);
+
+    // Check if any user with the group was found
+    if (results.length === 0) {
+      return res.status(404).json({ error: "No user with this group found" });
+    }
+
+    // Respond with the email
+    res.json({ email: results[0].email });
+  } catch (err) {
+    console.error("Error retrieving email:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 //PUSH >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 //create user function
 exports.createUser = catchAsyncErrors(async (req, res) => {

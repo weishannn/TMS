@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/userController");
 const taskController = require("../controllers/taskController");
+const { sendEmail } = require("../controllers/emailController");
 const authenticateToken = require("../middleware/auth");
 
 // Define routes
@@ -37,6 +38,12 @@ router.post(
   "/checkisInGroup",
   authenticateToken("active"),
   userController.checkisInGroup
+);
+
+router.post(
+  "/getUserEmail",
+  authenticateToken("active"),
+  userController.getUserEmail
 );
 
 //admin functions
@@ -92,6 +99,8 @@ router.delete(
 );
 
 // task controller
+router.post("/send-email", authenticateToken("active"), sendEmail);
+
 //application
 router.post(
   "/createApp",
@@ -99,6 +108,11 @@ router.post(
   taskController.createApp
 );
 router.get("/getApps", authenticateToken("active"), taskController.getApps); //get all applications
+router.post(
+  "/getAppsByPermitGroup",
+  authenticateToken("active"),
+  taskController.getAppsByPermitGroup
+);
 router.put(
   "/editApp",
   authenticateToken("active", "PL"),

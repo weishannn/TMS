@@ -24,6 +24,12 @@
 		showCreateModal = true;
 	}
 
+	function validatePlanName(planname) {
+		// Regular expression for validating an email address
+		const plannamePattern = /^[a-zA-Z0-9\s!@#$%^&*()\-_=+{};:'",.<>?/|\\~`[\]]{1,255}$/;
+		return plannamePattern.test(planname);
+	}
+
 	async function handleSubmitPlan() {
 		if (!planName || !planappAcronym || !planStartDate || !planEndDate) {
 			alertError('Please fill in all fields.');
@@ -31,6 +37,12 @@
 		}
 		if (!planColor) {
 			alertError('Please select a color.');
+			return;
+		}
+		if (!validatePlanName(planName)) {
+			alertError(
+				'Plan name can only be alphanumeric, including spaces and special characters. Max length is 255 characters.'
+			);
 			return;
 		}
 

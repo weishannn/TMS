@@ -9,6 +9,10 @@ export function alertSuccess(success) {
 	toast.success(`${success || 'Server Error!'}`);
 }
 
+export function alertInfo(info) {
+	toast.info(`${info || 'Server Error!'}`);
+}
+
 // // Function for handling specific error scenarios
 // export function alertNetworkError() {
 // 	toast.error('Network error: Please check your connection.');
