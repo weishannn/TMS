@@ -3,6 +3,7 @@
 	import TMS from '$lib/TMS.svelte';
 	import { appStore } from '../../../../stores/updateStore';
 	import HomePageNav from '$lib/HomePage-NAV.svelte';
+	import { onMount, onDestroy } from 'svelte';
 
 	let selectedAppDetails = null;
 	let username = '';
@@ -16,6 +17,10 @@
 		inTMS = value.inTMS;
 		isInGroupPL = value.isInGroupPL;
 		isInGroupPM = value.isInGroupPM;
+	});
+
+	onDestroy(() => {
+		unsubscribe();
 	});
 </script>
 

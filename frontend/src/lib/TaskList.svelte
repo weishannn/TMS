@@ -351,10 +351,23 @@
 	let showEditModal = false;
 	let editabletaskId = '';
 	let edittaskState = '';
+	let edittaskPlan = '';
+
+	let taskPlanHasChanges = false;
+	$: taskPlanHasChanges = edittaskPlan !== taskPlan;
+	$: console.log(
+		'taskPlan:',
+		taskPlan,
+		'edittaskPlan:',
+		edittaskPlan,
+		'taskPlanHasChanges:',
+		taskPlanHasChanges
+	);
 
 	function handleEditTask(task) {
 		showEditModal = true;
 		taskPlan = task.Task_plan;
+		edittaskPlan = taskPlan;
 		taskName = task.Task_name;
 		taskDescription = task.Task_description;
 		edittaskState = task.Task_state;
@@ -672,7 +685,7 @@
 				'http://localhost:5000/api/users/editTask',
 				{
 					taskId: editabletaskId,
-					taskPlan,
+					taskPlan: edittaskPlan,
 					taskName,
 					taskDescription,
 					taskNotes,
@@ -917,10 +930,10 @@
 
 					<div class="form-group">
 						<div class="task-row">
-							<label for="taskPlan">Plan Name:</label>
+							<label for="edittaskPlan">Plan Name:</label>
 							<select
-								id="taskPlan"
-								bind:value={taskPlan}
+								id="edittaskPlan"
+								bind:value={edittaskPlan}
 								disabled={edittaskState === 'Closed' ||
 									edittaskState === 'Todo' ||
 									edittaskState === 'Doing' ||
@@ -1015,10 +1028,13 @@
 					<button style="background-color: red;" on:click={handleForfeitTask}>Forfeit Task</button>
 					<button on:click={handleUpdateTask}>Save Changes</button>
 				{:else if edittaskState === 'Done' && permitDoneGroup}
-					<button style="background-color: green;" on:click={handleApproveTask}>Approve Task</button
+					<button
+						style="background-color: green;"
+						on:click={handleApproveTask}
+						disabled={taskPlanHasChanges}>Approve Task</button
 					>
 					<button style="background-color: red;" on:click={handleRejectTask}>Reject Task</button>
-					<button on:click={handleUpdateTask}>Save Changes</button>
+					<button on:click={handleUpdateTask} disabled={taskPlanHasChanges}>Save Changes</button>
 				{/if}
 
 				{#if edittaskState !== 'Closed'}
@@ -1224,6 +1240,14 @@
 		background-color: #fff; /* Light background for better contrast */
 		border: none;
 		cursor: not-allowed; /* Change cursor to indicate it's disabled */
+	}
+
+	button:disabled {
+		filter: brightness(70%); /* Darkens the color to give a 'disabled' effect */
+		color: #fff; /* You can adjust the text color */
+		cursor: not-allowed; /* Show not-allowed cursor */
+		opacity: 0.6; /* Make it more translucent to give a 'blurred' effect */
+		box-shadow: none; /* Remove any shadow or effects */
 	}
 
 	.inputdescription {
