@@ -3,6 +3,7 @@
 	import axios from 'axios';
 	import { onMount } from 'svelte';
 	import { alertError, alertSuccess } from '../stores/errorHandle';
+	import { goto } from '$app/navigation';
 
 	export let selectedAppDetails;
 	export let username;
@@ -23,6 +24,15 @@
 	let permitDoingGroup = false;
 	let permitDoneGroup = false;
 
+	// Redirect to login page
+	const redirectToLogin = () => {
+		goto('/login');
+	};
+
+	const redirectToApps = () => {
+		goto('/homepage/applications');
+	};
+
 	const checkpermitCreate = async () => {
 		try {
 			const response = await axios.post(
@@ -37,6 +47,7 @@
 			);
 
 			permitCreateGroup = response.data.isInGroup;
+			return true;
 		} catch (error) {
 			if (
 				error.response.status === 404 ||
@@ -64,6 +75,7 @@
 			);
 
 			permitOpenGroup = response.data.isInGroup;
+			return true;
 		} catch (error) {
 			if (
 				error.response.status === 404 ||
@@ -91,6 +103,7 @@
 			);
 
 			permitToDoGroup = response.data.isInGroup;
+			return true;
 		} catch (error) {
 			if (
 				error.response.status === 404 ||
@@ -119,6 +132,7 @@
 			);
 
 			permitDoingGroup = response.data.isInGroup;
+			return true;
 		} catch (error) {
 			if (
 				error.response.status === 404 ||
@@ -147,6 +161,7 @@
 			);
 
 			permitDoneGroup = response.data.isInGroup;
+			return true;
 		} catch (error) {
 			if (
 				error.response.status === 404 ||
@@ -332,7 +347,10 @@
 		} catch (error) {
 			if (error.response && error.response.status === 404) {
 				alertError('User not logged in.');
-			} else if (error.response && error.response.status === 401) {
+			} else if (
+				(error.response && error.response.status === 401) ||
+				error.response.status === 403
+			) {
 				alertError('Unauthorized access.');
 				redirectToLogin();
 			} else if (error.response && error.response.status === 409) {
@@ -344,8 +362,24 @@
 		}
 	};
 
-	function handleSubmitTask() {
-		createTask();
+	async function handleSubmitTask() {
+		try {
+			// Await the result of checkpermitOpen and act accordingly
+			const hasPermission = await checkpermitOpen();
+
+			// If the user does not have permission, redirect to the login page
+			if (!hasPermission) {
+				alertError('You do not have permission to create tasks.');
+				redirectToApps();
+				// Redirect user to login page or handle the session logout
+				return; // Stop further execution
+			}
+
+			createTask();
+		} catch (error) {
+			console.error('Error submitting task:', error);
+			alertError('Error submitting task. Please try again.');
+		}
 	}
 
 	let showCreateModal = false;
@@ -364,6 +398,7 @@
 	let editabletaskId = '';
 	let edittaskState = '';
 	let edittaskPlan = '';
+	let previoustaskOwner = '';
 
 	let taskPlanHasChanges = false;
 	$: taskPlanHasChanges = edittaskPlan !== taskPlan;
@@ -384,6 +419,7 @@
 		taskDescription = task.Task_description;
 		edittaskState = task.Task_state;
 		taskNotes = '';
+		previoustaskOwner = task.Task_owner;
 		taskOwner = username;
 		editabletaskId = task.Task_id;
 		taskCreator = task.Task_creator || '';
@@ -478,40 +514,53 @@
 	}
 
 	async function handleReleaseTask() {
-		// Set the task state to 'Todo'
-		edittaskState = 'Todo';
-
-		// Get the current date and time
-		const now = new Date();
-
-		// Format the date to DD/MM/YYYY
-		const day = String(now.getDate()).padStart(2, '0');
-		const month = String(now.getMonth() + 1).padStart(2, '0');
-		const year = now.getFullYear();
-
-		// Format the time to HH:MM
-		const hours = String(now.getHours()).padStart(2, '0');
-		const minutes = String(now.getMinutes()).padStart(2, '0');
-
-		// Construct the formatted date and time
-		const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
-
-		// Prepare the promotion note
-		const promotionNote = `Promoted by: ${username} Dated on: ${formattedDateTime}`;
-
-		// Check if there are existing task notes
-		if (taskNotes && taskNotes.trim() !== '') {
-			// Append to existing task notes
-			taskNotes = `${taskNotes}\n${promotionNote}`;
-		} else {
-			// If no existing notes, set taskNotes to the promotion note
-			taskNotes = promotionNote;
-		}
-
 		try {
+			// Await the result of checkpermitOpen and act accordingly
+			const hasPermission = await checkpermitOpen();
+
+			console.log('hasPermission:', hasPermission);
+
+			// If the user does not have permission, redirect to the login page
+			if (!hasPermission) {
+				alertError('You do not have permission to release this task.');
+				redirectToApps();
+				return; // Stop further execution
+			}
+
+			// Set the task state to 'Todo'
+			edittaskState = 'Todo';
+
+			// Get the current date and time
+			const now = new Date();
+
+			// Format the date to DD/MM/YYYY
+			const day = String(now.getDate()).padStart(2, '0');
+			const month = String(now.getMonth() + 1).padStart(2, '0');
+			const year = now.getFullYear();
+
+			// Format the time to HH:MM
+			const hours = String(now.getHours()).padStart(2, '0');
+			const minutes = String(now.getMinutes()).padStart(2, '0');
+
+			// Construct the formatted date and time
+			const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
+
+			// Prepare the promotion note
+			const promotionNote = `Promoted by: ${username} Dated on: ${formattedDateTime}`;
+
+			// Check if there are existing task notes
+			if (taskNotes && taskNotes.trim() !== '') {
+				// Append to existing task notes
+				taskNotes = `${taskNotes}\n${promotionNote}`;
+			} else {
+				// If no existing notes, set taskNotes to the promotion note
+				taskNotes = promotionNote;
+			}
+
 			// Await the updateTask function to ensure it's completed before proceeding
 			await updateTask();
 
+			// Close the task handling
 			handleCloseTask();
 		} catch (error) {
 			console.error('Error releasing task:', error);
@@ -520,37 +569,48 @@
 	}
 
 	async function handleTakeOnTask() {
-		// Set the task state to 'Todo'
-		edittaskState = 'Doing';
-
-		// Get the current date and time
-		const now = new Date();
-
-		// Format the date to DD/MM/YYYY
-		const day = String(now.getDate()).padStart(2, '0');
-		const month = String(now.getMonth() + 1).padStart(2, '0');
-		const year = now.getFullYear();
-
-		// Format the time to HH:MM
-		const hours = String(now.getHours()).padStart(2, '0');
-		const minutes = String(now.getMinutes()).padStart(2, '0');
-
-		// Construct the formatted date and time
-		const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
-
-		// Prepare the promotion note
-		const promotionNote = `Promoted by: ${username} Dated on: ${formattedDateTime}`;
-
-		// Check if there are existing task notes
-		if (taskNotes && taskNotes.trim() !== '') {
-			// Append to existing task notes
-			taskNotes = `${taskNotes}\n${promotionNote}`;
-		} else {
-			// If no existing notes, set taskNotes to the promotion note
-			taskNotes = promotionNote;
-		}
-
 		try {
+			// Await the result of checkpermitOpen and act accordingly
+			const hasPermission = await checkpermitToDo();
+
+			// If the user does not have permission, redirect to the login page
+			if (!hasPermission) {
+				alertError('You do not have permission to take on this task.');
+				redirectToApps();
+				// Redirect user to login page or handle the session logout
+				return; // Stop further execution
+			}
+
+			// Set the task state to 'Todo'
+			edittaskState = 'Doing';
+
+			// Get the current date and time
+			const now = new Date();
+
+			// Format the date to DD/MM/YYYY
+			const day = String(now.getDate()).padStart(2, '0');
+			const month = String(now.getMonth() + 1).padStart(2, '0');
+			const year = now.getFullYear();
+
+			// Format the time to HH:MM
+			const hours = String(now.getHours()).padStart(2, '0');
+			const minutes = String(now.getMinutes()).padStart(2, '0');
+
+			// Construct the formatted date and time
+			const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
+
+			// Prepare the promotion note
+			const promotionNote = `Promoted by: ${username} Dated on: ${formattedDateTime}`;
+
+			// Check if there are existing task notes
+			if (taskNotes && taskNotes.trim() !== '') {
+				// Append to existing task notes
+				taskNotes = `${taskNotes}\n${promotionNote}`;
+			} else {
+				// If no existing notes, set taskNotes to the promotion note
+				taskNotes = promotionNote;
+			}
+
 			// Await the updateTask function to ensure it's completed before proceeding
 			await updateTask();
 
@@ -562,37 +622,48 @@
 	}
 
 	async function handleToReviewTask() {
-		// Set the task state to 'Todo'
-		edittaskState = 'Done';
-
-		// Get the current date and time
-		const now = new Date();
-
-		// Format the date to DD/MM/YYYY
-		const day = String(now.getDate()).padStart(2, '0');
-		const month = String(now.getMonth() + 1).padStart(2, '0');
-		const year = now.getFullYear();
-
-		// Format the time to HH:MM
-		const hours = String(now.getHours()).padStart(2, '0');
-		const minutes = String(now.getMinutes()).padStart(2, '0');
-
-		// Construct the formatted date and time
-		const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
-
-		// Prepare the promotion note
-		const promotionNote = `Promoted by: ${username} Dated on: ${formattedDateTime}`;
-
-		// Check if there are existing task notes
-		if (taskNotes && taskNotes.trim() !== '') {
-			// Append to existing task notes
-			taskNotes = `${taskNotes}\n${promotionNote}`;
-		} else {
-			// If no existing notes, set taskNotes to the promotion note
-			taskNotes = promotionNote;
-		}
-
 		try {
+			// Await the result of checkpermitOpen and act accordingly
+			const hasPermission = await checkpermitDoing();
+
+			// If the user does not have permission, redirect to the login page
+			if (!hasPermission) {
+				alertError('You do not have permission to submit this task for review.');
+				redirectToApps();
+				// Redirect user to login page or handle the session logout
+				return; // Stop further execution
+			}
+
+			// Set the task state to 'Todo'
+			edittaskState = 'Done';
+
+			// Get the current date and time
+			const now = new Date();
+
+			// Format the date to DD/MM/YYYY
+			const day = String(now.getDate()).padStart(2, '0');
+			const month = String(now.getMonth() + 1).padStart(2, '0');
+			const year = now.getFullYear();
+
+			// Format the time to HH:MM
+			const hours = String(now.getHours()).padStart(2, '0');
+			const minutes = String(now.getMinutes()).padStart(2, '0');
+
+			// Construct the formatted date and time
+			const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
+
+			// Prepare the promotion note
+			const promotionNote = `Promoted by: ${username} Dated on: ${formattedDateTime}`;
+
+			// Check if there are existing task notes
+			if (taskNotes && taskNotes.trim() !== '') {
+				// Append to existing task notes
+				taskNotes = `${taskNotes}\n${promotionNote}`;
+			} else {
+				// If no existing notes, set taskNotes to the promotion note
+				taskNotes = promotionNote;
+			}
+
 			// Await the updateTask function to ensure it's completed before proceeding
 			await updateTask();
 			handleCloseTask();
@@ -606,37 +677,48 @@
 	}
 
 	async function handleForfeitTask() {
-		// Set the task state to 'Todo'
-		edittaskState = 'Todo';
-
-		// Get the current date and time
-		const now = new Date();
-
-		// Format the date to DD/MM/YYYY
-		const day = String(now.getDate()).padStart(2, '0');
-		const month = String(now.getMonth() + 1).padStart(2, '0');
-		const year = now.getFullYear();
-
-		// Format the time to HH:MM
-		const hours = String(now.getHours()).padStart(2, '0');
-		const minutes = String(now.getMinutes()).padStart(2, '0');
-
-		// Construct the formatted date and time
-		const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
-
-		// Prepare the promotion note
-		const promotionNote = `Forfeited by: ${username} Dated on: ${formattedDateTime}`;
-
-		// Check if there are existing task notes
-		if (taskNotes && taskNotes.trim() !== '') {
-			// Append to existing task notes
-			taskNotes = `${taskNotes}\n${promotionNote}`;
-		} else {
-			// If no existing notes, set taskNotes to the promotion note
-			taskNotes = promotionNote;
-		}
-
 		try {
+			// Await the result of checkpermitOpen and act accordingly
+			const hasPermission = await checkpermitDoing();
+
+			// If the user does not have permission, redirect to the login page
+			if (!hasPermission) {
+				alertError('You do not have permission to forfeit this task.');
+				redirectToApps();
+				// Redirect user to login page or handle the session logout
+				return; // Stop further execution
+			}
+
+			// Set the task state to 'Todo'
+			edittaskState = 'Todo';
+
+			// Get the current date and time
+			const now = new Date();
+
+			// Format the date to DD/MM/YYYY
+			const day = String(now.getDate()).padStart(2, '0');
+			const month = String(now.getMonth() + 1).padStart(2, '0');
+			const year = now.getFullYear();
+
+			// Format the time to HH:MM
+			const hours = String(now.getHours()).padStart(2, '0');
+			const minutes = String(now.getMinutes()).padStart(2, '0');
+
+			// Construct the formatted date and time
+			const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
+
+			// Prepare the promotion note
+			const promotionNote = `Forfeited by: ${username} Dated on: ${formattedDateTime}`;
+
+			// Check if there are existing task notes
+			if (taskNotes && taskNotes.trim() !== '') {
+				// Append to existing task notes
+				taskNotes = `${taskNotes}\n${promotionNote}`;
+			} else {
+				// If no existing notes, set taskNotes to the promotion note
+				taskNotes = promotionNote;
+			}
+
 			// Await the updateTask function to ensure it's completed before proceeding
 			await updateTask();
 
@@ -648,37 +730,47 @@
 	}
 
 	async function handleApproveTask() {
-		// Set the task state to 'Todo'
-		edittaskState = 'Closed';
-
-		// Get the current date and time
-		const now = new Date();
-
-		// Format the date to DD/MM/YYYY
-		const day = String(now.getDate()).padStart(2, '0');
-		const month = String(now.getMonth() + 1).padStart(2, '0');
-		const year = now.getFullYear();
-
-		// Format the time to HH:MM
-		const hours = String(now.getHours()).padStart(2, '0');
-		const minutes = String(now.getMinutes()).padStart(2, '0');
-
-		// Construct the formatted date and time
-		const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
-
-		// Prepare the promotion note
-		const promotionNote = `Promoted by: ${username} Dated on: ${formattedDateTime}`;
-
-		// Check if there are existing task notes
-		if (taskNotes && taskNotes.trim() !== '') {
-			// Append to existing task notes
-			taskNotes = `${taskNotes}\n${promotionNote}`;
-		} else {
-			// If no existing notes, set taskNotes to the promotion note
-			taskNotes = promotionNote;
-		}
-
 		try {
+			// Await the result of checkpermitOpen and act accordingly
+			const hasPermission = await checkpermitDone();
+
+			// If the user does not have permission, redirect to the login page
+			if (!hasPermission) {
+				alertError('You do not have permission to approve this task.');
+				redirectToApps();
+				// Redirect user to login page or handle the session logout
+				return; // Stop further execution
+			}
+			// Set the task state to 'Todo'
+			edittaskState = 'Closed';
+
+			// Get the current date and time
+			const now = new Date();
+
+			// Format the date to DD/MM/YYYY
+			const day = String(now.getDate()).padStart(2, '0');
+			const month = String(now.getMonth() + 1).padStart(2, '0');
+			const year = now.getFullYear();
+
+			// Format the time to HH:MM
+			const hours = String(now.getHours()).padStart(2, '0');
+			const minutes = String(now.getMinutes()).padStart(2, '0');
+
+			// Construct the formatted date and time
+			const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
+
+			// Prepare the promotion note
+			const promotionNote = `Promoted by: ${username} Dated on: ${formattedDateTime}`;
+
+			// Check if there are existing task notes
+			if (taskNotes && taskNotes.trim() !== '') {
+				// Append to existing task notes
+				taskNotes = `${taskNotes}\n${promotionNote}`;
+			} else {
+				// If no existing notes, set taskNotes to the promotion note
+				taskNotes = promotionNote;
+			}
+
 			// Await the updateTask function to ensure it's completed before proceeding
 			await updateTask();
 
@@ -690,39 +782,54 @@
 	}
 
 	async function handleRejectTask() {
-		// Set the task state to 'Todo'
-		edittaskState = 'Doing';
-
-		// Get the current date and time
-		const now = new Date();
-
-		// Format the date to DD/MM/YYYY
-		const day = String(now.getDate()).padStart(2, '0');
-		const month = String(now.getMonth() + 1).padStart(2, '0');
-		const year = now.getFullYear();
-
-		// Format the time to HH:MM
-		const hours = String(now.getHours()).padStart(2, '0');
-		const minutes = String(now.getMinutes()).padStart(2, '0');
-
-		// Construct the formatted date and time
-		const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
-
-		// Prepare the promotion note
-		const promotionNote = `Rejected by: ${username} Dated on: ${formattedDateTime}`;
-
-		// Check if there are existing task notes
-		if (taskNotes && taskNotes.trim() !== '') {
-			// Append to existing task notes
-			taskNotes = `${taskNotes}\n${promotionNote}`;
-		} else {
-			// If no existing notes, set taskNotes to the promotion note
-			taskNotes = promotionNote;
-		}
-
 		try {
+			// Await the result of checkpermitOpen and act accordingly
+			const hasPermission = await checkpermitDone();
+
+			console.log('hasPermission:', hasPermission);
+
+			// If the user does not have permission, redirect to the login page
+			if (!hasPermission) {
+				alertError('You do not have permission to reject this task.');
+				redirectToApps();
+				// Redirect user to login page or handle the session logout
+				return; // Stop further execution
+			}
+
+			// Set the task state to 'Todo'
+			edittaskState = 'Doing';
+
+			// Get the current date and time
+			const now = new Date();
+
+			// Format the date to DD/MM/YYYY
+			const day = String(now.getDate()).padStart(2, '0');
+			const month = String(now.getMonth() + 1).padStart(2, '0');
+			const year = now.getFullYear();
+
+			// Format the time to HH:MM
+			const hours = String(now.getHours()).padStart(2, '0');
+			const minutes = String(now.getMinutes()).padStart(2, '0');
+
+			// Construct the formatted date and time
+			const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
+
+			// Prepare the promotion note
+			const promotionNote = `Rejected by: ${username} Dated on: ${formattedDateTime}`;
+
+			// Check if there are existing task notes
+			if (taskNotes && taskNotes.trim() !== '') {
+				// Append to existing task notes
+				taskNotes = `${taskNotes}\n${promotionNote}`;
+			} else {
+				// If no existing notes, set taskNotes to the promotion note
+				taskNotes = promotionNote;
+			}
+
+			taskOwner = previoustaskOwner;
+
 			// Await the updateTask function to ensure it's completed before proceeding
-			await updateTask();
+			await updateTask(taskOwner);
 
 			handleCloseTask();
 		} catch (error) {
@@ -731,8 +838,65 @@
 		}
 	}
 
-	function handleUpdateTask() {
-		updateTask();
+	async function handleUpdateTask() {
+		try {
+			// Determine the current task state (assuming you have a variable for this)
+			const taskState = edittaskState; // Implement this function to retrieve the current state
+
+			let hasPermission;
+
+			// Check permissions based on the current state
+			switch (taskState) {
+				case 'Open':
+					hasPermission = await checkpermitOpen();
+					if (!hasPermission) {
+						alertError('You do not have permission to update this task.');
+						redirectToApps();
+						return; // Stop further execution
+					}
+					break;
+
+				case 'Todo':
+					hasPermission = await checkpermitToDo();
+					if (!hasPermission) {
+						alertError('You do not have permission to update this task.');
+						redirectToApps();
+						return; // Stop further execution
+					}
+					break;
+
+				case 'Doing':
+					hasPermission = await checkpermitDoing();
+					if (!hasPermission) {
+						alertError('You do not have permission to update this task.');
+						redirectToApps();
+						return; // Stop further execution
+					}
+					break;
+
+				case 'Done':
+					hasPermission = await checkpermitDone();
+					if (!hasPermission) {
+						alertError('You do not have permission to update this task.');
+						redirectToApps();
+						return; // Stop further execution
+					}
+					break;
+
+				default:
+					return; // Stop further execution
+			}
+
+			// If we reach here, the user has the required permission for the current task state
+			taskOwner = previoustaskOwner;
+
+			// Await the updateTask function to ensure it's completed before proceeding
+			await updateTask(taskOwner);
+			handleCloseTask();
+		} catch (error) {
+			console.error('Error updating task:', error);
+			// Optionally, handle the error here (e.g., show an alert or message)
+		}
 	}
 
 	const updateTask = async () => {
@@ -808,7 +972,10 @@
 			// Error handling for various response statuses
 			if (error.response && error.response.status === 404) {
 				alertError('User not logged in.');
-			} else if (error.response && error.response.status === 401) {
+			} else if (
+				(error.response && error.response.status === 401) ||
+				error.response.status === 403
+			) {
 				alertError('Unauthorized access.');
 				redirectToLogin();
 			} else if (error.response && error.response.status === 409) {
@@ -1071,9 +1238,14 @@
 					<div class="form-group">
 						<div class="task-row">
 							<label for="taskOwner">Task Owner:</label>
-							<span class="task-input" id="taskOwner" type="text" placeholder="Task Owner" readonly
-								>{taskOwner}</span
-							>
+							<span class="task-input" id="taskOwner" type="text" placeholder="Task Owner" readonly>
+								<!-- {#if edittaskState === 'Doing'}
+									{previoustaskOwner}								
+								{:else} -->
+								<!-- TO IMPLEMENT???? -->
+								{taskOwner}
+								<!-- {/if} -->
+							</span>
 						</div>
 					</div>
 					<div class="form-group">
@@ -1119,6 +1291,7 @@
 					<button style="background-color: green;" on:click={handleTakeOnTask}>Take On</button>
 					<button on:click={handleUpdateTask}>Save Changes</button>
 				{:else if edittaskState === 'Doing' && permitDoingGroup}
+					<!-- && previoustaskOwner === username 							TO IMPLEMENT????-->
 					<button style="background-color: green;" on:click={handleToReviewTask}>To Review</button>
 					<button style="background-color: red;" on:click={handleForfeitTask}>Forfeit Task</button>
 					<button on:click={handleUpdateTask}>Save Changes</button>

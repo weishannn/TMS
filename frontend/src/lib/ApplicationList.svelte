@@ -64,7 +64,10 @@
 		} catch (error) {
 			if (error.response && error.response.status === 404) {
 				alertError('User not logged in.');
-			} else if (error.response && error.response.status === 401) {
+			} else if (
+				(error.response && error.response.status === 401) ||
+				error.response.status === 403
+			) {
 				alertError('Unauthorized access.');
 				redirectToLogin();
 			} else if (error.response && error.response.status === 500) {
@@ -72,6 +75,10 @@
 			}
 			console.error('Error creating application:', error);
 		}
+	};
+
+	const redirectToLogin = () => {
+		goto('/login');
 	};
 
 	const handleEditApp = (

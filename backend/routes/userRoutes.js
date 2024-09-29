@@ -136,7 +136,7 @@ router.post(
 router.post("/getTasks", authenticateToken("active"), taskController.getTasks);
 router.put("/editTask", authenticateToken("active"), taskController.editTask);
 
-//to be the most bottom [why????]
+//to be the most bottom
 router.get(
   "/:appAcronym",
   authenticateToken("active"),
