@@ -10,8 +10,6 @@
 	export let username;
 
 	let appAcronym = selectedAppDetails.App_Acronym;
-	let appRNumber = selectedAppDetails.App_Rnumber;
-	$: taskId = `${appAcronym}_${appRNumber}`;
 
 	let permitCreate = selectedAppDetails.App_permit_Create;
 	let permitOpen = selectedAppDetails.App_permit_Open;
@@ -324,7 +322,6 @@
 			const response = await axios.post(
 				'http://localhost:5000/api/users/createTask',
 				{
-					taskId,
 					taskPlan,
 					taskappAcronym: appAcronym,
 					taskName,
@@ -341,7 +338,6 @@
 				alertSuccess('Task created successfully!');
 				handleCloseTask();
 				fetchTasks();
-				appRNumber += 1; // increment appRNumber correctly
 			} else {
 				alertError('Failed to create task. Please try again.');
 			}
@@ -431,6 +427,7 @@
 	let editabletaskId = '';
 	let edittaskState = '';
 	let edittaskPlan = '';
+	let edittaskName = '';
 	let previoustaskOwner = '';
 
 	let taskPlanHasChanges = false;
@@ -440,7 +437,7 @@
 		showEditModal = true;
 		taskPlan = task.Task_plan;
 		edittaskPlan = taskPlan;
-		taskName = task.Task_name;
+		edittaskName = task.Task_name;
 		taskDescription = task.Task_description;
 		edittaskState = task.Task_state;
 		taskNotes = '';
@@ -481,62 +478,15 @@
 		}
 	}
 
-	let recipientEmail = '';
-
-	async function retrieveEmail() {
-		try {
-			// Await the axios POST request
-			const response = await axios.post(
-				'http://localhost:5000/api/users/getUserEmail',
-				{
-					userGroup: permitDone
-				},
-				{ withCredentials: true }
-			);
-
-			// Check if the response is successful
-			if (response.status === 200 && response.data.email) {
-				recipientEmail = response.data.email; // Access the email field from the response
-				console.log('Email retrieved:', recipientEmail);
-			} else {
-				console.error('Error retrieving email:', response.data);
-				alertError('Error retrieving email.');
-			}
-		} catch (error) {
-			console.error('Error occurred while retrieving email:', error);
-			alertError('Error occurred while retrieving email.');
-		}
-	}
-
-	async function handleTaskFlow() {
-		try {
-			// First, retrieve the email
-			await retrieveEmail();
-
-			// Now, send the email after it's retrieved
-			if (recipientEmail) {
-				await sendEmail();
-			} else {
-				alertError('No email address retrieved, cannot send the email.');
-			}
-		} catch (error) {
-			console.error('Error occurred during task flow:', error);
-		}
-	}
-
 	async function sendEmail() {
-		// Ensure recipientEmail is not empty
-		if (!recipientEmail) {
-			alertError('No Email Address found, Unable to send email.');
-			return;
-		}
-
 		try {
 			// Make a POST request to the email sending API
 			const response = await axios.post(
 				'http://localhost:5000/api/users/send-email',
 				{
-					recipientEmail: recipientEmail
+					appAcronym,
+					taskName: edittaskName,
+					taskId: editabletaskId
 				},
 				{ withCredentials: true }
 			);
@@ -715,7 +665,7 @@
 			handleCloseTask();
 
 			// Send an email notification after updating the task
-			await handleTaskFlow(); // Make sure sendEmail is defined and returns a promise
+			await sendEmail(); // Make sure sendEmail is defined and returns a promise
 		} catch (error) {
 			console.error('Error releasing task:', error);
 			// Optionally, handle the error here (e.g., show an alert or message)
@@ -976,11 +926,11 @@
 	}
 
 	const updateTask = async () => {
-		if (!taskName) {
+		if (!edittaskName) {
 			alertError('Please enter a task name.');
 			return;
 		}
-		if (!validateTaskName(taskName)) {
+		if (!validateTaskName(edittaskName)) {
 			alertError(
 				'Task name can only be alphanumeric, including spaces and special characters. Max length is 255 characters.'
 			);
@@ -998,7 +948,7 @@
 				{
 					taskId: editabletaskId,
 					taskPlan: edittaskPlan,
-					taskName,
+					taskName: edittaskName,
 					taskDescription,
 					taskNotes,
 					taskState: edittaskState,
@@ -1087,7 +1037,7 @@
 						<div class="task-row">
 							<label for="taskId">Task ID: </label>
 							<span style="font-weight: bold; margin-left: 10px; font-size: 18px; flex:2;"
-								>{taskId}</span
+								>System Auto Generated</span
 							>
 						</div>
 					</div>
@@ -1217,7 +1167,7 @@
 								class="task-input"
 								id="taskName"
 								type="text"
-								bind:value={taskName}
+								bind:value={edittaskName}
 								placeholder="Task Name"
 								disabled={edittaskState === 'Closed' ||
 									edittaskState === 'Todo' ||

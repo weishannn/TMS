@@ -1,15 +1,25 @@
 const nodemailer = require("nodemailer");
 const dotenv = require("dotenv");
+const db = require("../models/db");
 
 dotenv.config();
 
 const sendEmail = async (req, res) => {
-  const { recipientEmail } = req.body;
+  const { appAcronym, taskId, taskName } = req.body;
 
   // Check if recipientEmail is provided
-  if (!recipientEmail) {
-    return res.status(400).json({ error: "Recipient email not found" });
+  if (!appAcronym) {
+    return res.status(400).json({ error: "App Acronym not found" });
   }
+
+  const queryGetEmail = `SELECT acc.email FROM accounts acc JOIN usergroup u ON u.username = acc.username JOIN application app ON u.user_group = app.App_permit_Done WHERE app.App_Acronym = ?`;
+
+  const results = await db.query(queryGetEmail, [appAcronym]);
+  console.log(results);
+  const recipientEmail = results
+    .flat() // Flatten the array of arrays
+    .filter((user) => user.email !== "") // Filter out entries with empty email fields
+    .map((user) => user.email); // Extract the emails
 
   // Create a transporter
   let transporter = nodemailer.createTransport({
@@ -26,11 +36,17 @@ const sendEmail = async (req, res) => {
   // Set up email data
   let mailOptions = {
     from: '"TMS-Do-Not-Reply" <d45046990@gmail.com>',
-    to: recipientEmail, // Accepts email from the request body
+    to: recipientEmail.join(", "), // Accepts email from the request body
     subject: "TMS Task To Review",
     text:
       "Dear Project Leads, \n\n" +
       "You have a new task to review. \n\n" +
+      "Task Name: " +
+      taskName +
+      "\n\n" +
+      "Task ID: " +
+      taskId +
+      "\n\n" +
       "Please login to the system to review the task. \n\n" +
       "Thanks, \n" +
       "TMS Team",

@@ -325,7 +325,7 @@ exports.getPlans = catchAsyncErrors(async (req, res) => {
 //create task
 exports.createTask = catchAsyncErrors(async (req, res) => {
   const {
-    taskId,
+    //taskId,
     taskPlan,
     taskappAcronym,
     taskName,
@@ -342,7 +342,7 @@ exports.createTask = catchAsyncErrors(async (req, res) => {
 
   // Validate required fields
   if (
-    !taskId ||
+    //!taskId ||
     !taskappAcronym ||
     !taskName ||
     !taskState ||
@@ -365,7 +365,20 @@ exports.createTask = catchAsyncErrors(async (req, res) => {
 
   try {
     // Start transaction
-    await db.query("BEGIN"); // Start the transaction
+    await db.query("START TRANSACTION"); // Start the transaction
+
+    const [app] = await db.query(
+      "SELECT App_Rnumber FROM application WHERE App_Acronym = ? FOR UPDATE",
+      [taskappAcronym]
+    );
+
+    if (app.length === 0) {
+      throw new Error("Application not found for the given App_Acronym");
+    }
+
+    // Get and increment the Rnumber
+    const currentRnumber = app[0].App_Rnumber;
+    const taskId = taskappAcronym + "_" + currentRnumber;
 
     // Check if task already exists
     const [results] = await db.query("SELECT * FROM task WHERE Task_id = ?", [
