@@ -258,8 +258,12 @@ exports.createPlan = catchAsyncErrors(async (req, res) => {
   }
 
   // Check if the plan already exists
-  const checkPlanQuery = "SELECT * FROM plan WHERE Plan_MVP_name = ?";
-  const [existingPlans] = await db.query(checkPlanQuery, [planName]);
+  const checkPlanQuery =
+    "SELECT * FROM plan WHERE Plan_MVP_name = ? AND Plan_app_Acronym = ?";
+  const [existingPlans] = await db.query(checkPlanQuery, [
+    planName,
+    planappAcronym,
+  ]);
 
   if (existingPlans.length > 0) {
     return res.status(409).json({

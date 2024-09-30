@@ -6,6 +6,7 @@
 	import { goto } from '$app/navigation';
 	import { alertError, alertSuccess } from '../stores/errorHandle';
 	import { createEventDispatcher } from 'svelte';
+	import { Toaster } from 'svelte-sonner';
 
 	export let applications = [];
 	export let availableGroups = [];
@@ -187,6 +188,7 @@
 	<!-- EDIT APP MODAL -->
 
 	{#if showEditModal}
+		<Toaster richColors style="z-index: 12;" />
 		<div class="modal">
 			<div class="modal-content">
 				<h2>Edit Application</h2>

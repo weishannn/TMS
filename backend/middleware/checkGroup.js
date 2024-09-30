@@ -9,11 +9,11 @@ const checkGroup = (username, groupname) =>
         .json({ error: "Username and user group are required" });
     }
 
-    const groupPattern = `%${groupname}%`;
+    const groupPattern = groupname;
 
     try {
       const [results] = await db.query(
-        "SELECT * FROM usergroup WHERE username = ? AND user_group LIKE ?",
+        "SELECT * FROM usergroup WHERE username = ? AND user_group = ?",
         [username, groupPattern]
       );
 

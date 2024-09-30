@@ -7,6 +7,7 @@
 	import { refreshUserList } from '../../../stores/updateStore';
 	import { goto } from '$app/navigation';
 	import { alertError, alertSuccess } from '../../../stores/errorHandle';
+	import { Toaster } from 'svelte-sonner';
 
 	let users = [];
 	let availableGroups = [];
@@ -217,6 +218,7 @@
 			{/if}
 
 			{#if showGroupModal}
+				<Toaster richColors style="z-index: 12;" />
 				<div class="modal">
 					<div class="modal-content">
 						<h2>Add Group</h2>

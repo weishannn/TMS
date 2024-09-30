@@ -8,6 +8,7 @@
 	import axios from 'axios';
 	import { alertError, alertInfo, alertSuccess } from '../../../stores/errorHandle';
 	import { appStore } from '../../../stores/updateStore';
+	import { Toaster } from 'svelte-sonner';
 
 	let showCreateModal = false;
 	let applications = [];
@@ -92,13 +93,9 @@
 
 	const fetchapplications = async () => {
 		try {
-			const response = await axios.post(
-				'http://localhost:5000/api/users/getAppsByPermitGroup',
-				{ username },
-				{
-					withCredentials: true
-				}
-			);
+			const response = await axios.get('http://localhost:5000/api/users/getApps', {
+				withCredentials: true
+			});
 			applications = response.data;
 
 			//convert epoch to date
@@ -212,7 +209,7 @@
 			return;
 		}
 		if (!appPermitCreate) {
-			appPermitCreate = 'PL';
+			appPermitCreate = null;
 		}
 		if (!appPermitOpen) {
 			appPermitOpen = null;
@@ -314,6 +311,7 @@
 	<!-- CREATE APP MODAL -->
 
 	{#if showCreateModal}
+		<Toaster richColors style="z-index: 12;" />
 		<div class="modal">
 			<div class="modal-content">
 				<h2>Create Application</h2>

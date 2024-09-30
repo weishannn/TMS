@@ -20,7 +20,7 @@ exports.checkAdmin = catchAsyncErrors(async (req, res, next) => {
   }
 
   // Use the checkGroup middleware directly
-  checkGroup(username, "admin")(req, res, (err) => {
+  checkGroup(username, "Admin")(req, res, (err) => {
     if (err) {
       // If an error is thrown by checkGroup, it will handle the response
       console.error("Error checking admin status:", err);

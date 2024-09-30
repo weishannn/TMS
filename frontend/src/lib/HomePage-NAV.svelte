@@ -5,6 +5,7 @@
 	import { goto } from '$app/navigation';
 	import { refreshUserList } from '../stores/updateStore';
 	import { alertError, alertSuccess } from '../stores/errorHandle';
+	import { Toaster } from 'svelte-sonner';
 
 	export let username = '';
 	//export let usergroup = ''; // Default to an empty string
@@ -226,6 +227,7 @@
 		<main></main>
 
 		{#if showProfileModal}
+			<Toaster richColors style="z-index: 12;" />
 			<div class="modal">
 				<div class="modal-content">
 					<h2>Profile</h2>

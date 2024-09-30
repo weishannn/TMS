@@ -7,6 +7,7 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
+	import { Toaster } from 'svelte-sonner';
 
 	export let selectedAppDetails;
 	export let inTMS;
@@ -137,6 +138,7 @@
 	{/if}
 
 	{#if showCreateModal}
+		<Toaster richColors style="z-index: 12;" />
 		<div class="modal">
 			<div class="modal-content">
 				<h2>Create Plan</h2>

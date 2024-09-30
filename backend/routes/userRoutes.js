@@ -50,34 +50,34 @@ router.post(
 //createuser
 router.post(
   "/createUser",
-  authenticateToken("active", "admin"),
+  authenticateToken("active", "Admin"),
   userController.createUser
 );
 
 //putuserintogroup
 router.post(
   "/putUserIntoGroup",
-  authenticateToken("active", "admin"),
+  authenticateToken("active", "Admin"),
   userController.putUserIntoGroup
 );
 
 //creategroup
 router.post(
   "/createGroup",
-  authenticateToken("active", "admin"),
+  authenticateToken("active", "Admin"),
   userController.createGroup
 );
 
 //getdata
 router.get(
   "/getUsersAndGroups",
-  authenticateToken("active", "admin"),
+  authenticateToken("active", "Admin"),
   userController.getUsersAndGroups
 );
 
 router.get(
   "/getUsers",
-  authenticateToken("active", "admin"),
+  authenticateToken("active", "Admin"),
   userController.getUsers
 );
 
@@ -87,14 +87,14 @@ router.get("/getGroups", authenticateToken("active"), userController.getGroups);
 //editOtherUserProfile
 router.put(
   "/editOtherUserProfile",
-  authenticateToken("active", "admin"),
+  authenticateToken("active", "Admin"),
   userController.editOtherUserProfile
 );
 
 //deleteUserGroup
 router.delete(
   "/deleteUserGroup",
-  authenticateToken("active", "admin"),
+  authenticateToken("active", "Admin"),
   userController.deleteUserGroup
 );
 

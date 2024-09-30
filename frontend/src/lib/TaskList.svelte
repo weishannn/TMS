@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import { alertError, alertSuccess } from '../stores/errorHandle';
 	import { goto } from '$app/navigation';
+	import { Toaster } from 'svelte-sonner';
 
 	export let selectedAppDetails;
 	export let username;
@@ -365,17 +366,49 @@
 	async function handleSubmitTask() {
 		try {
 			// Await the result of checkpermitOpen and act accordingly
-			const hasPermission = await checkpermitOpen();
+			const hasPermission = await checkpermitCreate();
+
+			console.log('hasPermission:', hasPermission);
 
 			// If the user does not have permission, redirect to the login page
 			if (!hasPermission) {
 				alertError('You do not have permission to create tasks.');
-				redirectToApps();
+				//redirectToApps();
 				// Redirect user to login page or handle the session logout
 				return; // Stop further execution
 			}
 
-			createTask();
+			// Set the task state to 'Todo'
+			edittaskState = 'Open';
+
+			// Get the current date and time
+			const now = new Date();
+
+			// Format the date to DD/MM/YYYY
+			const day = String(now.getDate()).padStart(2, '0');
+			const month = String(now.getMonth() + 1).padStart(2, '0');
+			const year = now.getFullYear();
+
+			// Format the time to HH:MM
+			const hours = String(now.getHours()).padStart(2, '0');
+			const minutes = String(now.getMinutes()).padStart(2, '0');
+
+			// Construct the formatted date and time
+			const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
+
+			// Prepare the promotion note
+			const promotionNote = `Created by: ${username} Dated on: ${formattedDateTime} Current State: ${edittaskState}\n`;
+
+			// Check if there are existing task notes
+			if (taskNotes && taskNotes.trim() !== '') {
+				// Append to existing task notes
+				taskNotes = `${taskNotes}\n${promotionNote}`;
+			} else {
+				// If no existing notes, set taskNotes to the promotion note
+				taskNotes = promotionNote;
+			}
+
+			await createTask();
 		} catch (error) {
 			console.error('Error submitting task:', error);
 			alertError('Error submitting task. Please try again.');
@@ -402,14 +435,6 @@
 
 	let taskPlanHasChanges = false;
 	$: taskPlanHasChanges = edittaskPlan !== taskPlan;
-	$: console.log(
-		'taskPlan:',
-		taskPlan,
-		'edittaskPlan:',
-		edittaskPlan,
-		'taskPlanHasChanges:',
-		taskPlanHasChanges
-	);
 
 	function handleEditTask(task) {
 		showEditModal = true;
@@ -427,11 +452,28 @@
 		// Convert create date from epoch to YYYY-MM-DD format
 		taskcreateDate = new Date(task.Task_createDate * 1000).toISOString().split('T')[0]; // Format the date
 
+		// Define keywords to split comments
+		const commentKeywords = [
+			'Commented by',
+			'Created by',
+			'Released by',
+			'Take on by',
+			'Submitted to review by',
+			'Forfeited by',
+			'Approved by',
+			'Rejected by'
+		];
+
+		// Build regex dynamically for keywords
+		const commentRegex = new RegExp(`(?=${commentKeywords.join('|')})`, 'g');
+
 		// Format task comments
 		if (task.Task_notes) {
-			taskComments = task.Task_notes.split(/(?=Commented by: )/) // Split at each "Commented By"
+			taskComments = task.Task_notes.split(commentRegex) // Split at each keyword (Commented by, Created by, etc.)
 				.map((comment) => comment.trim()) // Trim each comment block
-				.map((comment) => comment.replace(/(Dated on: \d{2}\/\d{2}\/\d{4})/, '\n$1')) // Ensure "Dated On" has a line break before it
+				.map(
+					(comment) => comment.replace(/(Dated on: \d{2}\/\d{2}\/\d{4} \d{2}:\d{2})/, '\n$1') // Ensure date has a line break before it
+				)
 				.map((comment) => comment.replace(/\n{2,}/g, '\n')) // Remove extra newlines within each comment
 				.join('\n\n'); // Join each comment block with a double newline
 		} else {
@@ -527,6 +569,10 @@
 				return; // Stop further execution
 			}
 
+			if (edittaskPlan === '') {
+				edittaskPlan = null;
+			}
+
 			// Set the task state to 'Todo'
 			edittaskState = 'Todo';
 
@@ -546,7 +592,7 @@
 			const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
 
 			// Prepare the promotion note
-			const promotionNote = `Promoted by: ${username} Dated on: ${formattedDateTime}`;
+			const promotionNote = `Released by: ${username} Dated on: ${formattedDateTime} Current State: ${edittaskState}\n`;
 
 			// Check if there are existing task notes
 			if (taskNotes && taskNotes.trim() !== '') {
@@ -600,7 +646,7 @@
 			const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
 
 			// Prepare the promotion note
-			const promotionNote = `Promoted by: ${username} Dated on: ${formattedDateTime}`;
+			const promotionNote = `Take on by: ${username} Dated on: ${formattedDateTime} Current State: ${edittaskState}\n`;
 
 			// Check if there are existing task notes
 			if (taskNotes && taskNotes.trim() !== '') {
@@ -653,7 +699,7 @@
 			const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
 
 			// Prepare the promotion note
-			const promotionNote = `Promoted by: ${username} Dated on: ${formattedDateTime}`;
+			const promotionNote = `Submitted to review by: ${username} Dated on: ${formattedDateTime} Current State: ${edittaskState}\n`;
 
 			// Check if there are existing task notes
 			if (taskNotes && taskNotes.trim() !== '') {
@@ -708,7 +754,7 @@
 			const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
 
 			// Prepare the promotion note
-			const promotionNote = `Forfeited by: ${username} Dated on: ${formattedDateTime}`;
+			const promotionNote = `Forfeited by: ${username} Dated on: ${formattedDateTime} Current State: ${edittaskState}\n`;
 
 			// Check if there are existing task notes
 			if (taskNotes && taskNotes.trim() !== '') {
@@ -760,7 +806,7 @@
 			const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
 
 			// Prepare the promotion note
-			const promotionNote = `Promoted by: ${username} Dated on: ${formattedDateTime}`;
+			const promotionNote = `Approved by: ${username} Dated on: ${formattedDateTime} Current State: ${edittaskState}\n`;
 
 			// Check if there are existing task notes
 			if (taskNotes && taskNotes.trim() !== '') {
@@ -796,6 +842,10 @@
 				return; // Stop further execution
 			}
 
+			if (edittaskPlan === '') {
+				edittaskPlan = null;
+			}
+
 			// Set the task state to 'Todo'
 			edittaskState = 'Doing';
 
@@ -815,7 +865,7 @@
 			const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
 
 			// Prepare the promotion note
-			const promotionNote = `Rejected by: ${username} Dated on: ${formattedDateTime}`;
+			const promotionNote = `Rejected by: ${username} Dated on: ${formattedDateTime} Current State: ${edittaskState}\n`;
 
 			// Check if there are existing task notes
 			if (taskNotes && taskNotes.trim() !== '') {
@@ -840,6 +890,32 @@
 
 	async function handleUpdateTask() {
 		try {
+			// Check if there are new task notes to append
+			if (taskNotes) {
+				// Get the current date and time
+				const now = new Date();
+
+				// Format the date to DD/MM/YYYY
+				const day = String(now.getDate()).padStart(2, '0'); // Get day and pad with zero if needed
+				const month = String(now.getMonth() + 1).padStart(2, '0'); // Get month (0-indexed) and pad
+				const year = now.getFullYear(); // Get full year
+
+				// Format the time to HH:MM (24-hour format)
+				const hours = String(now.getHours()).padStart(2, '0'); // Get hours and pad
+				const minutes = String(now.getMinutes()).padStart(2, '0'); // Get minutes and pad
+
+				// Construct the formatted date and time
+				const formattedDate = `${day}/${month}/${year}`;
+				const formattedTime = `${hours}:${minutes}`;
+
+				// Append to taskNotes
+				taskNotes = `Commented by: ${username} \nDated on: ${formattedDate} ${formattedTime} \n${taskNotes}\n`;
+			}
+
+			if (edittaskPlan === '') {
+				edittaskPlan = null;
+			}
+
 			// Determine the current task state (assuming you have a variable for this)
 			const taskState = edittaskState; // Implement this function to retrieve the current state
 
@@ -913,28 +989,6 @@
 
 		if (!taskPlan) {
 			taskPlan = null; // Set taskPlan to null if not provided
-		}
-
-		// Check if there are new task notes to append
-		if (taskNotes) {
-			// Get the current date and time
-			const now = new Date();
-
-			// Format the date to DD/MM/YYYY
-			const day = String(now.getDate()).padStart(2, '0'); // Get day and pad with zero if needed
-			const month = String(now.getMonth() + 1).padStart(2, '0'); // Get month (0-indexed) and pad
-			const year = now.getFullYear(); // Get full year
-
-			// Format the time to HH:MM (24-hour format)
-			const hours = String(now.getHours()).padStart(2, '0'); // Get hours and pad
-			const minutes = String(now.getMinutes()).padStart(2, '0'); // Get minutes and pad
-
-			// Construct the formatted date and time
-			const formattedDate = `${day}/${month}/${year}`;
-			const formattedTime = `${hours}:${minutes}`;
-
-			// Append to taskNotes
-			taskNotes = `Commented by: ${username} \nDated on: ${formattedDate} ${formattedTime} \n${taskNotes}\n`;
 		}
 
 		try {
@@ -1021,6 +1075,7 @@
 	</div>
 
 	{#if showCreateModal}
+		<Toaster richColors style="z-index: 12;" />
 		<div class="modal">
 			<div class="modal-header">
 				<h2>Create Task</h2>
@@ -1139,6 +1194,7 @@
 
 	<!-- view/edit model -->
 	{#if showEditModal}
+		<Toaster richColors style="z-index: 12;" />
 		<div class="modal">
 			<div class="modal-header">
 				<h2>{editabletaskId}</h2>
@@ -1167,7 +1223,7 @@
 									edittaskState === 'Todo' ||
 									edittaskState === 'Doing' ||
 									edittaskState === 'Done' ||
-									(edittaskState === 'Open' && !permitOpenGroup)}
+									edittaskState === 'Open'}
 							/>
 						</div>
 					</div>
@@ -1450,6 +1506,8 @@
 	}
 	.notes-label {
 		flex: 1;
+		overflow-y: auto;
+		height: 400px;
 	}
 
 	.task-card {
