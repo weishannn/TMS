@@ -35,6 +35,10 @@ const userRoutes = require("./routes/userRoutes");
 
 app.use("/api/users", userRoutes);
 
+const demoRoutes = require("./routes/demoRoutes");
+
+app.use("/api/demo", demoRoutes);
+
 // Start the server
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
