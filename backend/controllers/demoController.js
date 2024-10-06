@@ -83,6 +83,15 @@ exports.createTask = catchAsyncErrors(async (req, res) => {
       return res.status(404).json({ msgCode: Msg.NOT_AUTHORIZED });
     }
 
+    //check app exists
+    const [validApp] = await db.query(
+      "SELECT * FROM application WHERE App_Acronym = ?",
+      [appAcronym]
+    );
+    if (!validApp.length) {
+      return res.status(404).json({ msgCode: Msg.NOT_FOUND });
+    }
+
     // Check user on application permits
     const [permitCreate] = await db.query(
       "SELECT App_permit_Create FROM application WHERE App_Acronym = ?",
@@ -168,8 +177,16 @@ exports.createTask = catchAsyncErrors(async (req, res) => {
     // Commit transaction
     await db.query("COMMIT"); // Commit the transaction
 
+    // Retrieve the created task to return as response
+    const [createdTask] = await db.query(
+      "SELECT * FROM task WHERE Task_id = ?",
+      [taskId]
+    );
+
+    // Return the created task details
     return res.json({
       msgCode: Msg.SUCCESS,
+      result: createdTask[0], // Send the task details as response
     });
   } catch (error) {
     console.error("Transaction error:", error);
@@ -221,9 +238,13 @@ exports.getTaskbyState = catchAsyncErrors(async (req, res) => {
       [appAcronym, taskState]
     );
 
+    if (!result.length) {
+      return res.status(404).json({ msgCode: Msg.NOT_FOUND });
+    }
+
     return res.json({
       msgCode: Msg.SUCCESS,
-      result,
+      result: result,
     });
   } catch (err) {
     console.error("Error during task retrieval:", err);
@@ -292,6 +313,15 @@ exports.promoteTask2Done = catchAsyncErrors(async (req, res) => {
       return res.status(403).json({ msgCode: Msg.NOT_AUTHORIZED });
     }
 
+    //check app exists
+    const [validApp] = await db.query(
+      "SELECT * FROM application WHERE App_Acronym = ?",
+      [appAcronym]
+    );
+    if (!validApp.length) {
+      return res.status(404).json({ msgCode: Msg.NOT_FOUND });
+    }
+
     const [permitDoing] = await db.query(
       "SELECT App_permit_Doing FROM application WHERE App_Acronym = ?",
       [appAcronym]
@@ -308,11 +338,19 @@ exports.promoteTask2Done = catchAsyncErrors(async (req, res) => {
 
     // Fetch current task details
     const [currentTask] = await db.query(
-      "SELECT Task_notes, Task_name FROM task WHERE Task_id = ?",
+      "SELECT Task_notes, Task_name, Task_state FROM task WHERE Task_id = ?",
       [taskId]
     );
     if (!currentTask.length) {
       return res.status(404).json({ msgCode: Msg.NOT_FOUND });
+    }
+
+    if (currentTask[0].Task_state == "Done") {
+      return res.status(400).json({ msgCode: Msg.ENTRY_EXISTS });
+    }
+
+    if (currentTask[0].Task_state !== "Doing") {
+      return res.status(400).json({ msgCode: Msg.INVALID_STATE_CHANGE });
     }
 
     // Prepare task update data
@@ -384,7 +422,17 @@ exports.promoteTask2Done = catchAsyncErrors(async (req, res) => {
       }
     }
 
-    return res.status(200).json({ msgCode: Msg.SUCCESS });
+    // Retrieve the created task to return as response
+    const [updatedTask] = await db.query(
+      "SELECT * FROM task WHERE Task_id = ?",
+      [taskId]
+    );
+
+    // Return the created task details
+    return res.json({
+      msgCode: Msg.SUCCESS,
+      task: updatedTask[0], // Send the task details as response
+    });
   } catch (error) {
     console.error("Transaction error:", error);
     return res.status(500).json({ msgCode: Msg.INTERNAL });

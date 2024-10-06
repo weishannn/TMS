@@ -1,6 +1,5 @@
 const express = require("express");
 const router = express.Router();
-const { sendEmail } = require("../controllers/emailController");
 const demoController = require("../controllers/demoController");
 
 // Define routes
