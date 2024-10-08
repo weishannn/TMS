@@ -144,7 +144,7 @@ exports.createTask = catchAsyncErrors(async (req, res) => {
       "SELECT * FROM plan WHERE Plan_MVP_name = ?",
       [taskPlan]
     );
-    if (!validPlan.length) {
+    if (taskPlan && !validPlan.length) {
       return res.status(400).json({ msgCode: Msg.NOT_FOUND });
     }
 
@@ -382,6 +382,13 @@ exports.promoteTask2Done = catchAsyncErrors(async (req, res) => {
     if (!validApp.length) {
       return res.status(400).json({ msgCode: Msg.NOT_FOUND });
     }
+    const [validAppandTask] = await db.query(
+      "SELECT * FROM task WHERE Task_id = ? AND Task_app_Acronym = ?",
+      [taskId, appAcronym]
+    );
+    if (!validAppandTask.length) {
+      return res.status(400).json({ msgCode: Msg.NOT_FOUND });
+    }
 
     const [permitDoing] = await db.query(
       "SELECT App_permit_Doing FROM application WHERE App_Acronym = ?",
@@ -471,7 +478,7 @@ exports.promoteTask2Done = catchAsyncErrors(async (req, res) => {
 
       // Send email
       try {
-        let info = await transporter.sendMail(mailOptions);
+        let info = transporter.sendMail(mailOptions);
         console.log("Message sent: %s", info.messageId);
       } catch (error) {
         console.error("Email sending error:", error.message);
