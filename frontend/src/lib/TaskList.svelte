@@ -35,7 +35,7 @@
 	const checkpermitCreate = async () => {
 		try {
 			const response = await axios.post(
-				'http://localhost:5000/api/users/checkisInGroup',
+				'http://localhost:3000/api/users/checkisInGroup',
 				{
 					username,
 					userGroup: permitCreate
@@ -63,7 +63,7 @@
 	const checkpermitOpen = async () => {
 		try {
 			const response = await axios.post(
-				'http://localhost:5000/api/users/checkisInGroup',
+				'http://localhost:3000/api/users/checkisInGroup',
 				{
 					username,
 					userGroup: permitOpen
@@ -91,7 +91,7 @@
 	const checkpermitToDo = async () => {
 		try {
 			const response = await axios.post(
-				'http://localhost:5000/api/users/checkisInGroup',
+				'http://localhost:3000/api/users/checkisInGroup',
 				{
 					username,
 					userGroup: permitToDo
@@ -120,7 +120,7 @@
 	const checkpermitDoing = async () => {
 		try {
 			const response = await axios.post(
-				'http://localhost:5000/api/users/checkisInGroup',
+				'http://localhost:3000/api/users/checkisInGroup',
 				{
 					username,
 					userGroup: permitDoing
@@ -149,7 +149,7 @@
 	const checkpermitDone = async () => {
 		try {
 			const response = await axios.post(
-				'http://localhost:5000/api/users/checkisInGroup',
+				'http://localhost:3000/api/users/checkisInGroup',
 				{
 					username,
 					userGroup: permitDone
@@ -197,7 +197,7 @@
 	async function fetchTasks() {
 		try {
 			const response = await axios.post(
-				`http://localhost:5000/api/users/getTasks`,
+				`http://localhost:3000/api/users/getTasks`,
 				{ taskappAcronym: appAcronym },
 				{ withCredentials: true }
 			);
@@ -241,7 +241,7 @@
 	async function fetchPlans() {
 		try {
 			const response = await axios.post(
-				'http://localhost:5000/api/users/getPlans',
+				'http://localhost:3000/api/users/getPlans',
 				{ planappAcronym: appAcronym },
 				{ withCredentials: true }
 			);
@@ -320,7 +320,7 @@
 
 		try {
 			const response = await axios.post(
-				'http://localhost:5000/api/users/createTask',
+				'http://localhost:3000/api/users/createTask',
 				{
 					taskPlan,
 					taskappAcronym: appAcronym,
@@ -482,7 +482,7 @@
 		try {
 			// Make a POST request to the email sending API
 			const response = await axios.post(
-				'http://localhost:5000/api/users/send-email',
+				'http://localhost:3000/api/users/send-email',
 				{
 					appAcronym,
 					taskName: edittaskName,
@@ -944,7 +944,7 @@
 		try {
 			// Send updated task data to the server
 			const response = await axios.put(
-				'http://localhost:5000/api/users/editTask',
+				'http://localhost:3000/api/users/editTask',
 				{
 					taskId: editabletaskId,
 					taskPlan: edittaskPlan,

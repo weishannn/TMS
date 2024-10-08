@@ -9,6 +9,25 @@ dotenv.config();
 
 //create task
 exports.createTask = catchAsyncErrors(async (req, res) => {
+  const allowedFields = [
+    "username",
+    "password",
+    "appAcronym",
+    "taskName",
+    "description",
+    "taskPlan",
+    "taskNotes",
+  ];
+
+  const invalidFields = Object.keys(req.body).filter(
+    (field) => !allowedFields.includes(field)
+  );
+  if (invalidFields.length > 0) {
+    return res.status(400).json({
+      msgCode: Msg.INVALID_KEY,
+    });
+  }
+
   const {
     username,
     password,
@@ -23,7 +42,7 @@ exports.createTask = catchAsyncErrors(async (req, res) => {
     /^[a-zA-Z0-9\s!@#$%^&*()\-_=+{};:'",.<>?/|\\~`[\]]{1,255}$/;
 
   if (!username || !password) {
-    return res.status(401).json({
+    return res.status(400).json({
       msgCode: Msg.INVALID_INPUT,
     });
   }
@@ -60,13 +79,24 @@ exports.createTask = catchAsyncErrors(async (req, res) => {
     newtaskNotes = `Created by: ${username}\nDated on: ${formattedDate} ${formattedTime}\nState: Open\n`;
   }
 
+  if (newtaskNotes.length > 2 ** 24 - 1) {
+    return res.status(400).json({
+      msgCode: Msg.INVALID_INPUT,
+    });
+  }
+  if (description.length > 2 ** 16 - 1) {
+    return res.status(400).json({
+      msgCode: Msg.INVALID_INPUT,
+    });
+  }
+
   try {
     //check user on accounts
     const [user] = await db.query("SELECT * FROM accounts WHERE username = ?", [
       username,
     ]);
     if (!user.length || user[0].accountStatus !== "active") {
-      return res.status(404).json({ msgCode: Msg.INVALID_CREDENTIALS });
+      return res.status(401).json({ msgCode: Msg.INVALID_CREDENTIALS });
     }
 
     const isMatch = await bcrypt.compare(password, user[0].password);
@@ -80,7 +110,7 @@ exports.createTask = catchAsyncErrors(async (req, res) => {
       [username]
     );
     if (!userGroups.length) {
-      return res.status(404).json({ msgCode: Msg.NOT_AUTHORIZED });
+      return res.status(403).json({ msgCode: Msg.NOT_AUTHORIZED });
     }
 
     //check app exists
@@ -89,7 +119,7 @@ exports.createTask = catchAsyncErrors(async (req, res) => {
       [appAcronym]
     );
     if (!validApp.length) {
-      return res.status(404).json({ msgCode: Msg.NOT_FOUND });
+      return res.status(400).json({ msgCode: Msg.NOT_FOUND });
     }
 
     // Check user on application permits
@@ -98,7 +128,7 @@ exports.createTask = catchAsyncErrors(async (req, res) => {
       [appAcronym]
     );
     if (!permitCreate.length) {
-      return res.status(404).json({ msgCode: Msg.NOT_AUTHORIZED });
+      return res.status(403).json({ msgCode: Msg.NOT_AUTHORIZED });
     }
 
     const permittedGroup = permitCreate[0].App_permit_Create;
@@ -115,7 +145,7 @@ exports.createTask = catchAsyncErrors(async (req, res) => {
       [taskPlan]
     );
     if (!validPlan.length) {
-      return res.status(404).json({ msgCode: Msg.NOT_FOUND });
+      return res.status(400).json({ msgCode: Msg.NOT_FOUND });
     }
 
     // Start transaction
@@ -127,24 +157,24 @@ exports.createTask = catchAsyncErrors(async (req, res) => {
     );
 
     if (app.length === 0) {
-      throw new Error({ msgCode: Msg.INVALID_INPUT });
+      return res.status(400).json({ msgCode: Msg.INVALID_INPUT });
     }
 
     // Get and increment the Rnumber
     const currentRnumber = app[0].App_Rnumber;
     const taskId = appAcronym + "_" + currentRnumber;
 
-    // Check if task already exists
-    const [results] = await db.query("SELECT * FROM task WHERE Task_id = ?", [
-      taskId,
-    ]);
+    // // Check if task already exists
+    // const [results] = await db.query("SELECT * FROM task WHERE Task_id = ?", [
+    //   taskId,
+    // ]);
 
-    if (results.length > 0) {
-      await db.query("ROLLBACK"); // Rollback if task already exists
-      return res.status(409).json({
-        msgCode: Msg.ENTRY_EXISTS,
-      });
-    }
+    // if (results.length > 0) {
+    //   await db.query("ROLLBACK"); // Rollback if task already exists
+    //   return res.status(402).json({
+    //     msgCode: Msg.ENTRY_EXISTS,
+    //   });
+    // }
 
     const taskState = "Open";
     const taskCreator = username;
@@ -177,38 +207,36 @@ exports.createTask = catchAsyncErrors(async (req, res) => {
     // Commit transaction
     await db.query("COMMIT"); // Commit the transaction
 
-    // Retrieve the created task to return as response
-    const [createdTask] = await db.query(
-      "SELECT * FROM task WHERE Task_id = ?",
-      [taskId]
-    );
-
     // Return the created task details
     return res.json({
+      result: { Task_id: taskId }, // Send the task details as response
       msgCode: Msg.SUCCESS,
-      result: createdTask[0], // Send the task details as response
     });
   } catch (error) {
     console.error("Transaction error:", error);
     await db.query("ROLLBACK"); // Rollback on error
-
-    if (error.message === Msg.INVALID_INPUT) {
-      return res.status(404).json({ msgCode: Msg.INVALID_INPUT });
-    } else if (error.code === "ER_DUP_ENTRY") {
-      return res.status(409).json({ msgCode: Msg.ENTRY_EXISTS });
-    } else {
-      return res.status(500).json({ msgCode: Msg.INTERNAL });
-    }
+    return res.status(500).json({ msgCode: Msg.INTERNAL });
   }
 });
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 // Get tasks
 exports.getTaskbyState = catchAsyncErrors(async (req, res) => {
+  const allowedFields = ["username", "password", "taskState", "appAcronym"];
+
+  const invalidFields = Object.keys(req.body).filter(
+    (field) => !allowedFields.includes(field)
+  );
+  if (invalidFields.length > 0) {
+    return res.status(400).json({
+      msgCode: Msg.INVALID_KEY,
+    });
+  }
+
   const { username, password, taskState, appAcronym } = req.body;
 
   if (!username || !password) {
-    return res.status(401).json({
+    return res.status(400).json({
       msgCode: Msg.INVALID_INPUT,
     });
   }
@@ -219,13 +247,18 @@ exports.getTaskbyState = catchAsyncErrors(async (req, res) => {
     });
   }
 
+  const validStates = ["open", "todo", "doing", "done", "closed"];
+  if (!validStates.includes(taskState)) {
+    return res.status(400).json({ msgCode: Msg.INVALID_INPUT });
+  }
+
   try {
     //check user on accounts
     const [user] = await db.query("SELECT * FROM accounts WHERE username = ?", [
       username,
     ]);
     if (!user.length || user[0].accountStatus !== "active") {
-      return res.status(404).json({ msgCode: Msg.INVALID_CREDENTIALS });
+      return res.status(401).json({ msgCode: Msg.INVALID_CREDENTIALS });
     }
 
     const isMatch = await bcrypt.compare(password, user[0].password);
@@ -233,18 +266,23 @@ exports.getTaskbyState = catchAsyncErrors(async (req, res) => {
       return res.status(401).json({ msgCode: Msg.INVALID_CREDENTIALS });
     }
 
+    const [validApp] = await db.query(
+      `SELECT * FROM task WHERE Task_app_Acronym = ?`,
+      [appAcronym]
+    );
+
+    if (!validApp.length) {
+      return res.status(400).json({ msgCode: Msg.NOT_FOUND });
+    }
+
     const [result] = await db.query(
       `SELECT * FROM task WHERE Task_app_Acronym = ? AND Task_state = ?`,
       [appAcronym, taskState]
     );
 
-    if (!result.length) {
-      return res.status(404).json({ msgCode: Msg.NOT_FOUND });
-    }
-
     return res.json({
-      msgCode: Msg.SUCCESS,
       result: result,
+      msgCode: Msg.SUCCESS,
     });
   } catch (err) {
     console.error("Error during task retrieval:", err);
@@ -255,10 +293,27 @@ exports.getTaskbyState = catchAsyncErrors(async (req, res) => {
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 // promote task
 exports.promoteTask2Done = catchAsyncErrors(async (req, res) => {
+  const allowedFields = [
+    "username",
+    "password",
+    "taskId",
+    "appAcronym",
+    "taskNotes",
+  ];
+
+  const invalidFields = Object.keys(req.body).filter(
+    (field) => !allowedFields.includes(field)
+  );
+  if (invalidFields.length > 0) {
+    return res.status(400).json({
+      msgCode: Msg.INVALID_KEY,
+    });
+  }
+
   const { username, password, taskId, appAcronym, taskNotes } = req.body;
 
   if (!username || !password) {
-    return res.status(401).json({
+    return res.status(400).json({
       msgCode: Msg.INVALID_INPUT,
     });
   }
@@ -290,6 +345,12 @@ exports.promoteTask2Done = catchAsyncErrors(async (req, res) => {
     newtaskNotes = `Submitted to review by: ${username}\nDated on: ${formattedDate} ${formattedTime}\nState: Done\n`;
   }
 
+  if (newtaskNotes.length > 2 ** 24 - 1) {
+    return res.status(400).json({
+      msgCode: Msg.INVALID_INPUT,
+    });
+  }
+
   try {
     // Validate user credentials
     const [user] = await db.query("SELECT * FROM accounts WHERE username = ?", [
@@ -319,7 +380,7 @@ exports.promoteTask2Done = catchAsyncErrors(async (req, res) => {
       [appAcronym]
     );
     if (!validApp.length) {
-      return res.status(404).json({ msgCode: Msg.NOT_FOUND });
+      return res.status(400).json({ msgCode: Msg.NOT_FOUND });
     }
 
     const [permitDoing] = await db.query(
@@ -342,11 +403,7 @@ exports.promoteTask2Done = catchAsyncErrors(async (req, res) => {
       [taskId]
     );
     if (!currentTask.length) {
-      return res.status(404).json({ msgCode: Msg.NOT_FOUND });
-    }
-
-    if (currentTask[0].Task_state == "Done") {
-      return res.status(400).json({ msgCode: Msg.ENTRY_EXISTS });
+      return res.status(400).json({ msgCode: Msg.NOT_FOUND });
     }
 
     if (currentTask[0].Task_state !== "Doing") {
@@ -430,8 +487,8 @@ exports.promoteTask2Done = catchAsyncErrors(async (req, res) => {
 
     // Return the created task details
     return res.json({
+      task: { Task_id: taskId, Task_state: taskState }, // Send the task details as response
       msgCode: Msg.SUCCESS,
-      task: updatedTask[0], // Send the task details as response
     });
   } catch (error) {
     console.error("Transaction error:", error);

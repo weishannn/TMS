@@ -33,7 +33,7 @@
 	// Function to fetch users and groups
 	const fetchUsersAndGroups = async () => {
 		try {
-			const response = await axios.get('http://localhost:5000/api/users/getUsersAndGroups', {
+			const response = await axios.get('http://localhost:3000/api/users/getUsersAndGroups', {
 				withCredentials: true // Ensure cookies are sent with the request
 			});
 			usergroup = response.data;
@@ -130,7 +130,7 @@
 		try {
 			// Create user
 			await axios.post(
-				'http://localhost:5000/api/users/createUser',
+				'http://localhost:3000/api/users/createUser',
 				{
 					username: inputUsername,
 					email: inputEmail,
@@ -147,7 +147,7 @@
 				// Add each group
 				for (const group of selectedGroups) {
 					await axios.post(
-						'http://localhost:5000/api/users/putUserIntoGroup',
+						'http://localhost:3000/api/users/putUserIntoGroup',
 						{
 							username: inputUsername,
 							userGroup: group
@@ -209,7 +209,7 @@
 
 		try {
 			await axios.put(
-				'http://localhost:5000/api/users/editOtherUserProfile',
+				'http://localhost:3000/api/users/editOtherUserProfile',
 				{
 					username: editInputUsername,
 					email: editInputEmail,
@@ -300,7 +300,7 @@
 
 		try {
 			await axios.delete(
-				'http://localhost:5000/api/users/deleteUserGroup',
+				'http://localhost:3000/api/users/deleteUserGroup',
 				{
 					params: {
 						username: username,

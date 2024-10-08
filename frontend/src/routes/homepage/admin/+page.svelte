@@ -27,7 +27,7 @@
 	// Fetch the current user
 	const fetchCurrentUser = async () => {
 		try {
-			const response = await axios.get('http://localhost:5000/api/users/currentUser', {
+			const response = await axios.get('http://localhost:3000/api/users/currentUser', {
 				withCredentials: true // Ensure cookies are sent with the request
 			});
 			username = response.data.username;
@@ -47,7 +47,7 @@
 	const checkIfAdmin = async () => {
 		try {
 			const response = await axios.post(
-				'http://localhost:5000/api/users/checkAdmin',
+				'http://localhost:3000/api/users/checkAdmin',
 				{ username },
 				{ withCredentials: true }
 			);
@@ -63,7 +63,7 @@
 	const fetchUsers = async () => {
 		if (!isAdmin) return; // Skip fetching users if not an admin
 		try {
-			const response = await axios.get('http://localhost:5000/api/users/getUsers', {
+			const response = await axios.get('http://localhost:3000/api/users/getUsers', {
 				withCredentials: true
 			});
 			users = response.data.users;
@@ -84,7 +84,7 @@
 	const fetchGroups = async () => {
 		if (!isAdmin) return; // Skip fetching groups if not an admin
 		try {
-			const response = await axios.get('http://localhost:5000/api/users/getGroups', {
+			const response = await axios.get('http://localhost:3000/api/users/getGroups', {
 				withCredentials: true
 			});
 			availableGroups = response.data.groups;
@@ -169,7 +169,7 @@
 
 		try {
 			const response = await axios.post(
-				'http://localhost:5000/api/users/createGroup',
+				'http://localhost:3000/api/users/createGroup',
 				{ userGroup: groupName },
 				{ withCredentials: true }
 			);

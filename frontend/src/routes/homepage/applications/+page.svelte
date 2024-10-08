@@ -17,7 +17,7 @@
 	// Fetch the current user
 	const fetchCurrentUser = async () => {
 		try {
-			const response = await axios.get('http://localhost:5000/api/users/currentUser', {
+			const response = await axios.get('http://localhost:3000/api/users/currentUser', {
 				withCredentials: true // Ensure cookies are sent with the request
 			});
 			username = response.data.username;
@@ -37,7 +37,7 @@
 	const checkIfPL = async () => {
 		try {
 			const response = await axios.post(
-				'http://localhost:5000/api/users/checkisInGroup',
+				'http://localhost:3000/api/users/checkisInGroup',
 				{
 					username,
 					userGroup: 'PL'
@@ -66,7 +66,7 @@
 	const checkIfPM = async () => {
 		try {
 			const response = await axios.post(
-				'http://localhost:5000/api/users/checkisInGroup',
+				'http://localhost:3000/api/users/checkisInGroup',
 				{
 					username,
 					userGroup: 'PM'
@@ -93,7 +93,7 @@
 
 	const fetchapplications = async () => {
 		try {
-			const response = await axios.get('http://localhost:5000/api/users/getApps', {
+			const response = await axios.get('http://localhost:3000/api/users/getApps', {
 				withCredentials: true
 			});
 			applications = response.data;
@@ -155,7 +155,7 @@
 	// Fetch available groups from the API
 	const fetchGroups = async () => {
 		try {
-			const response = await axios.get('http://localhost:5000/api/users/getGroups', {
+			const response = await axios.get('http://localhost:3000/api/users/getGroups', {
 				withCredentials: true
 			});
 			availableGroups = response.data.groups;
@@ -230,7 +230,7 @@
 
 		try {
 			const response = await axios.post(
-				'http://localhost:5000/api/users/createApp',
+				'http://localhost:3000/api/users/createApp',
 				{
 					appAcronym,
 					appDescription,

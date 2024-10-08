@@ -38,7 +38,7 @@
 
 		try {
 			const response = await axios.put(
-				'http://localhost:5000/api/users/editApp',
+				'http://localhost:3000/api/users/editApp',
 				{
 					appAcronym,
 					appDescription,

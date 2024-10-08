@@ -53,7 +53,7 @@
 
 		try {
 			const response = await axios.post(
-				'http://localhost:5000/api/users/createPlan',
+				'http://localhost:3000/api/users/createPlan',
 				{
 					planName,
 					planappAcronym,
@@ -106,7 +106,7 @@
 	async function fetchPlans() {
 		try {
 			const response = await axios.post(
-				'http://localhost:5000/api/users/getPlans',
+				'http://localhost:3000/api/users/getPlans',
 				{ planappAcronym: appAcronym },
 				{ withCredentials: true }
 			);

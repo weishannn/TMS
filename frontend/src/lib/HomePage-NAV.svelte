@@ -26,7 +26,7 @@
 
 	const fetchCurrentUser = async () => {
 		try {
-			const response = await axios.get('http://localhost:5000/api/users/currentUser', {
+			const response = await axios.get('http://localhost:3000/api/users/currentUser', {
 				withCredentials: true // Ensure cookies are sent with the request
 			});
 			username = response.data.username;
@@ -48,7 +48,7 @@
 	const checkIfAdmin = async () => {
 		try {
 			const response = await axios.post(
-				'http://localhost:5000/api/users/checkAdmin',
+				'http://localhost:3000/api/users/checkAdmin',
 				{ username },
 				{
 					withCredentials: true // Ensure cookies are sent with the request
@@ -129,7 +129,7 @@
 
 		try {
 			const response = await axios.put(
-				'http://localhost:5000/api/users/updateProfile',
+				'http://localhost:3000/api/users/updateProfile',
 				{ username, email, password },
 				{
 					withCredentials: true // Ensure cookies are sent with the request
@@ -186,7 +186,7 @@
 	async function handleLogout() {
 		try {
 			// Ensure cookies are sent with the request
-			await axios.post('http://localhost:5000/api/users/logout', {}, { withCredentials: true });
+			await axios.post('http://localhost:3000/api/users/logout', {}, { withCredentials: true });
 			alertSuccess('Logged out successfully.');
 			redirectToLogin();
 		} catch (error) {
