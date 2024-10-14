@@ -1,0 +1,20 @@
+# Base image
+FROM node:20-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files and install
+COPY package*.json ./
+
+RUN npm install
+
+COPY . .
+
+# Create a non-root user and group with specific UID and GID
+RUN adduser -H -D appuser
+USER appuser
+
+EXPOSE 3000
+
+CMD ["node", "server.js"]
