@@ -4,7 +4,7 @@ FROM node:20-alpine
 # Set working directory
 WORKDIR /app
 
-# Copy njs.tgz file to the image
+# Copy njs.tgz file 
 COPY njs.tgz /app/njs.tgz
 # Install dependencies
 RUN npm install njs.tgz
@@ -14,7 +14,7 @@ COPY . .
 # Verify dependencies by comparing
 RUN diff /app/package.json /app/node_modules/backend/package.json || exit 1
 
-# Flatten dependency tree
+# Flatten dependency tree [only able to use in internet environment]
 # RUN npm dedupe
 # Moving and Removing files out from the node_modules folder [linux]
 RUN mv /app/node_modules/backend/node_modules/* /app/node_modules
