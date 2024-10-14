@@ -1,0 +1,41 @@
+//3API//
+
+curl -Method POST `
+-Uri "http://localhost:3000/api/demo/CreateTask" `
+-Headers @{
+    "Content-Type" = "application/json"
+} `
+-Body '{
+    "username" : "user1",
+    "password" : "zaq123!!",
+    "appAcronym" : "Plane",
+    "taskName" : "Boeing 777",
+    "description" : "Boeing 777 description",
+    "taskNotes" : "",
+    "taskPlan" : "Sprint 1"
+}'
+
+curl -Method POST `
+-Uri "http://localhost:3000/api/demo/GetTaskbyState" `
+-Headers @{
+    "Content-Type" = "application/json"
+} `
+-Body '{
+    "username" : "user1",
+    "password" : "zaq123!!",
+    "taskState" : "open",
+    "appAcronym" : "Plane"
+}'
+
+curl -Method POST `
+-Uri "http://localhost:3000/api/demo/PromoteTask2Done" `
+-Headers @{
+    "Content-Type" = "application/json"
+} `
+-Body '{
+    "username" : "user1",
+    "password" : "zaq123!!",
+    "taskId" : "Plane_33",
+    "appAcronym" : "Plane",
+    "taskNotes" : ""
+}'
