@@ -9,6 +9,8 @@ COPY njs.tgz /app/njs.tgz
 # Install dependencies
 RUN npm install njs.tgz
 
+RUN rm -rf /app/njs.tgz
+
 COPY . .
 
 # Verify dependencies by comparing
